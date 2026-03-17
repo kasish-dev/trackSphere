@@ -10,16 +10,21 @@ connectDB();
 
 const app = express();
 const server = http.createServer(app);
+const frontendUrl = process.env.FRONTEND_URL || '*';
+const allowedOrigins = frontendUrl === '*' ? '*' : [frontendUrl, frontendUrl.replace(/\/$/, "")];
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: true
   },
 });
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*'
+  origin: allowedOrigins,
+  credentials: true
 }));
 app.use(express.json());
 
@@ -115,6 +120,10 @@ function deg2rad(deg) {
 // Health Check Route
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'TrackSphere Server is running' });
+});
+
+app.get('/', (req, res) => {
+  res.send('TrackSphere API is Live and Running!');
 });
 
 const PORT = process.env.PORT || 5000;
