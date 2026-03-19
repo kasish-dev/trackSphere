@@ -29,7 +29,12 @@ export const login = createAsyncThunk('auth/login', async (userData, thunkAPI) =
     }
     return response.data;
   } catch (error) {
-    const message = error.response?.data?.error || error.message || error.toString();
+    if (error.response?.status === 429) {
+      return thunkAPI.rejectWithValue('Too many attempts. Please try again in 15 minutes.');
+    }
+    const message = error.response?.data?.errors 
+      ? error.response.data.errors.map(err => err.msg).join('. ')
+      : error.response?.data?.error || error.message || error.toString();
     return thunkAPI.rejectWithValue(message);
   }
 });
@@ -38,6 +43,38 @@ export const login = createAsyncThunk('auth/login', async (userData, thunkAPI) =
 export const logout = createAsyncThunk('auth/logout', async () => {
   localStorage.removeItem('user');
 });
+
+// Update user preferences
+export const updatePreferences = createAsyncThunk(
+  'auth/updatePreferences',
+  async (preferences, thunkAPI) => {
+    try {
+      const token = thunkAPI.getState().auth.user.token;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const response = await axios.patch(API_URL + 'preferences', preferences, config);
+      if (response.data.success) {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const updatedUser = { 
+          ...user, 
+          user: { 
+            ...user.user, 
+            preferences: response.data.data.preferences 
+          } 
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return response.data.data.preferences;
+      }
+      return thunkAPI.rejectWithValue('Update failed');
+    } catch (error) {
+      const message = error.response?.data?.error || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
 
 const initialState = {
   user: JSON.parse(localStorage.getItem('user')) || null,
@@ -90,6 +127,11 @@ export const authSlice = createSlice({
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
+      })
+      .addCase(updatePreferences.fulfilled, (state, action) => {
+        if (state.user) {
+          state.user.user.preferences = action.payload;
+        }
       });
   },
 });

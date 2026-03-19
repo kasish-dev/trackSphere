@@ -1,12 +1,19 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleInvisible } from '../redux/locationSlice';
+import { updatePreferences } from '../redux/authSlice';
 import { Settings as SettingsIcon, Shield, EyeOff, User, Mail, ShieldAlert, Bell } from 'lucide-react';
 
 const Settings = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { isInvisible } = useSelector((state) => state.location);
+  
+  const pushNotifications = user?.user?.preferences?.pushNotifications ?? true;
+
+  const handleTogglePush = () => {
+    dispatch(updatePreferences({ pushNotifications: !pushNotifications }));
+  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -89,16 +96,24 @@ const Settings = () => {
               <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
             </div>
             <div className="p-6">
-              <div className="flex items-center justify-between opacity-50 cursor-not-allowed">
+              <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-semibold text-gray-900 dark:text-white">Push Notifications</h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Receive alerts when friends enter/exit areas.</p>
                 </div>
-                <div className="w-11 h-6 bg-gray-100 rounded-full relative">
-                   <div className="absolute top-[2px] left-[2px] bg-white w-5 h-5 rounded-full border border-gray-200"></div>
-                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={pushNotifications}
+                    onChange={handleTogglePush}
+                    className="sr-only peer" 
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                </label>
               </div>
-              <p className="text-[10px] text-amber-600 font-bold mt-2 uppercase">Beta feature - coming soon</p>
+              <p className="text-[10px] text-primary-600 font-bold mt-2 uppercase flex items-center gap-1">
+                <Shield size={10} /> Active and persistent
+              </p>
             </div>
           </section>
         </div>

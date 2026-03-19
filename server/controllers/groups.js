@@ -1,13 +1,23 @@
 const Group = require('../models/Group');
 const Geofence = require('../models/Geofence');
+const User = require('../models/User');
 
 // @desc    Create group
 // @route   POST /api/groups
 // @access  Private
 exports.createGroup = async (req, res) => {
   try {
+    const user = await User.findById(req.user.id);
+    if (user.subscriptionTier === 'FREE') {
+      const userGroupsCount = await Group.countDocuments({ members: req.user.id });
+      if (userGroupsCount >= 1) {
+        return res.status(403).json({ success: false, error: 'FREE tier users can only create or join 1 group. Upgrade to PREMIUM to unlock unlimited groups.' });
+      }
+    }
+
     req.body.owner = req.user.id;
     req.body.members = [req.user.id];
+
 
     const group = await Group.create(req.body);
 
@@ -52,6 +62,14 @@ exports.joinGroup = async (req, res) => {
 
     if (group.members.includes(req.user.id)) {
       return res.status(400).json({ success: false, error: 'You are already a member of this group' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (user.subscriptionTier === 'FREE') {
+      const userGroupsCount = await Group.countDocuments({ members: req.user.id });
+      if (userGroupsCount >= 1) {
+        return res.status(403).json({ success: false, error: 'FREE tier users can only create or join 1 group. Upgrade to PREMIUM to unlock unlimited groups.' });
+      }
     }
 
     group.members.push(req.user.id);

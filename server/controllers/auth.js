@@ -1,3 +1,4 @@
+const { validationResult } = require('express-validator');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
@@ -12,6 +13,11 @@ exports.register = async (req, res) => {
         success: false, 
         error: 'Database connection is not established. Please check your MONGO_URI in .env' 
       });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { name, email, password } = req.body;
@@ -41,6 +47,11 @@ exports.login = async (req, res) => {
         success: false, 
         error: 'Database connection is not established. Please check your MONGO_URI in .env' 
       });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { email, password } = req.body;
@@ -85,7 +96,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      subscription: user.subscription,
+      subscriptionTier: user.subscriptionTier,
     },
   });
 };
@@ -96,6 +107,32 @@ const sendTokenResponse = (user, statusCode, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+// @desc    Update user preferences
+// @route   PATCH /api/auth/preferences
+// @access  Private
+exports.updatePreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    user.preferences = {
+      ...user.preferences,
+      ...req.body
+    };
+
+    await user.save();
 
     res.status(200).json({
       success: true,

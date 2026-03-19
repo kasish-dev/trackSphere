@@ -31,10 +31,22 @@ const userSchema = new mongoose.Schema({
     enum: ['free', 'premium', 'business'],
     default: 'free',
   },
+  preferences: {
+    notifications: { type: Boolean, default: true },
+    locationPrivacy: { type: Boolean, default: false },
+    theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' }
+  },
+  subscriptionTier: {
+    type: String,
+    enum: ['FREE', 'PREMIUM'],
+    default: 'FREE'
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+}, {
+  timestamps: true
 });
 
 // Encyrpt password using bcrypt

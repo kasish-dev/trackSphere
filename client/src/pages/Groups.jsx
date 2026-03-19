@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import socket from '../services/socket';
-import { Plus, Users, UserPlus, Copy, Check, Shield, Loader2, AlertCircle, Share2 } from 'lucide-react';
+import { Plus, Users, UserPlus, Copy, Check, Shield, Loader2, AlertCircle, Share2, Zap } from 'lucide-react';
 import { fetchGroups, createGroup, joinGroup, resetGroupState } from '../redux/groupSlice';
+import UpgradeModal from '../components/UpgradeModal';
 
 const Groups = () => {
   const [activeTab, setActiveTab] = useState('my-groups');
   const [groupName, setGroupName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [copied, setCopied] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchParams] = useSearchParams();
 
   const dispatch = useDispatch();
@@ -41,7 +43,13 @@ const Groups = () => {
       setActiveTab('my-groups');
       dispatch(resetGroupState());
     }
-  }, [isSuccess, dispatch, user, groups, inviteCode, activeTab]);
+
+    // Intercept 403 Tier Limit errors from backend
+    if (isError && message && message.includes('Upgrade to PREMIUM')) {
+      setShowUpgradeModal(true);
+      dispatch(resetGroupState()); // Clear the error so it doesn't linger
+    }
+  }, [isSuccess, isError, message, dispatch, user, groups, inviteCode, activeTab]);
 
   const handleCopy = (code) => {
     navigator.clipboard.writeText(code);
@@ -67,6 +75,18 @@ const Groups = () => {
     } catch (err) {
       console.error('Error sharing:', err);
     }
+  };
+
+  const handleOpenAction = (tab) => {
+    // Treat undefined or 'FREE' as free tier
+    const isFree = !user?.user?.subscriptionTier || user.user.subscriptionTier === 'FREE';
+    
+    if (isFree && groups.length >= 1) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setActiveTab(tab);
+    dispatch(resetGroupState());
   };
 
   const handleCreateGroup = (e) => {
@@ -98,13 +118,13 @@ const Groups = () => {
         </h1>
         <div className="flex gap-2">
           <button 
-            onClick={() => { setActiveTab('create'); dispatch(resetGroupState()); }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+            onClick={() => handleOpenAction('create')}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-primary-600 shadow-md text-white rounded-lg hover:from-indigo-600 hover:to-primary-700 transition"
           >
             <Plus size={18} /> Create Group
           </button>
           <button 
-            onClick={() => { setActiveTab('join'); dispatch(resetGroupState()); }}
+            onClick={() => handleOpenAction('join')}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300"
           >
             <UserPlus size={18} /> Join Group
@@ -233,6 +253,12 @@ const Groups = () => {
           </form>
         </div>
       )}
+
+      {/* Premium Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

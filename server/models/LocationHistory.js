@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 
-const locationSchema = new mongoose.Schema({
+const locationHistorySchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.ObjectId,
     ref: 'User',
     required: true,
+  },
+  groupId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Group',
   },
   lat: {
     type: Number,
@@ -32,7 +36,7 @@ const locationSchema = new mongoose.Schema({
   },
 });
 
-// Index for fast queries
-locationSchema.index({ user: 1, timestamp: -1 });
+// Index for fast time-series queries by user
+locationHistorySchema.index({ user: 1, timestamp: -1 });
 
-module.exports = mongoose.model('Location', locationSchema);
+module.exports = mongoose.model('LocationHistory', locationHistorySchema);

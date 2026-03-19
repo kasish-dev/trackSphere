@@ -1,14 +1,76 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Map, Users, Settings, LogOut, Menu, X, Bell, History } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fetchNotifications, addLocalNotification } from '../redux/notificationSlice';
+import socket from '../services/socket';
 
-const Layout = ({ children }) => {
+const Layout = () => {
   const { user } = useSelector((state) => state.auth);
+  const { unreadCount } = useSelector((state) => state.notifications);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+
+  useEffect(() => {
+    if (user) {
+      dispatch(fetchNotifications());
+      
+      // Listen for real-time notifications via sockets
+      socket.on('sos-received', (data) => {
+        dispatch(addLocalNotification({
+          _id: Date.now().toString(),
+          type: 'sos',
+          message: `EMERGENCY: ${data.userName} triggered an SOS!`,
+          data: { ...data },
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }));
+      });
+
+      socket.on('geofence-alert', (alert) => {
+        dispatch(addLocalNotification({
+          _id: Date.now().toString(),
+          type: 'geofence',
+          message: `${alert.userName} entered ${alert.fenceName}`,
+          data: { ...alert },
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }));
+      });
+
+      socket.on('new-member-alert', (alert) => {
+        dispatch(addLocalNotification({
+          _id: Date.now().toString(),
+          type: 'group_join',
+          message: `${alert.userName} joined the group!`,
+          data: { ...alert },
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }));
+      });
+
+      socket.on('safety-anomaly', (alert) => {
+        dispatch(addLocalNotification({
+          _id: Date.now().toString(),
+          type: 'safety-anomaly',
+          message: alert.message,
+          data: { ...alert },
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }));
+      });
+    }
+
+    return () => {
+      socket.off('sos-received');
+      socket.off('geofence-alert');
+      socket.off('new-member-alert');
+      socket.off('safety-anomaly');
+    };
+  }, [dispatch, user]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -23,9 +85,13 @@ const Layout = ({ children }) => {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-900 dark:to-primary-950 text-gray-900 dark:text-gray-100 overflow-hidden">
       {/* Sidebar */}
-      <div className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}>
+      <motion.div 
+        initial={{ width: isSidebarOpen ? 256 : 80 }}
+        animate={{ width: isSidebarOpen ? 256 : 80 }}
+        className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-r border-white/40 dark:border-gray-700/50 flex flex-col z-[100] relative"
+      >
         <div className="p-6 flex items-center gap-3">
           <div className="bg-primary-600 p-2 rounded-lg">
             <Map className="text-white" size={24} />
@@ -61,29 +127,47 @@ const Layout = ({ children }) => {
             {isSidebarOpen && <span className="font-medium">Logout</span>}
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Header */}
-        <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+        <header className="h-16 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-b border-white/40 dark:border-gray-700/50 flex items-center justify-between px-8 z-[90]">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-lg transition-colors">
             <Menu size={20} />
           </button>
           
           <div className="flex items-center gap-4">
-            <button className="p-2 relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
-            </button>
+            <Link 
+              to="/notifications" 
+              className="p-2 relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg group"
+            >
+              <Bell size={20} className={unreadCount > 0 ? "text-primary-600" : ""} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-gray-800 font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
             <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center font-bold text-white text-xs">
               {user?.user?.name?.[0] || 'U'}
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-transparent relative z-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={window.location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
