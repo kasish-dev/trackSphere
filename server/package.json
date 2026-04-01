@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "seed:demo": "node scripts/seedDemo.js",
+    "promote:admin": "node scripts/promoteUserToAdmin.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb-memory-server": "^11.0.1",
     "mongoose": "^9.3.0",
+    "razorpay": "^2.9.6",
     "socket.io": "^4.8.3",
     "stripe": "^20.4.1"
   },

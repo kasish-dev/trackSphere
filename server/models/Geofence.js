@@ -31,6 +31,11 @@ const geofenceSchema = new mongoose.Schema({
     required: [true, 'Please add a radius in meters'],
     default: 100,
   },
+  category: {
+    type: String,
+    enum: ['home', 'work', 'school', 'danger', 'other'],
+    default: 'other',
+  },
   createdAt: {
     type: Date,
     default: Date.now,

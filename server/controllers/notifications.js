@@ -1,4 +1,6 @@
 const Notification = require('../models/Notification');
+const User = require('../models/User');
+const notificationService = require('../services/notificationService');
 
 // @desc    Get user notifications
 // @route   GET /api/notifications
@@ -75,6 +77,52 @@ exports.markAllAsRead = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server Error',
+    });
+  }
+};
+
+// @desc    Trigger a test SOS alert to saved emergency contacts
+// @route   POST /api/notifications/test-sos
+// @access  Private
+exports.sendTestSOS = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (!user.emergencyContacts || user.emergencyContacts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Add at least one emergency contact before sending a test SOS',
+      });
+    }
+
+    const location = {
+      lat: req.body?.lat ?? 0,
+      lng: req.body?.lng ?? 0,
+    };
+
+    const result = await notificationService.sendEmergencyAlert({
+      type: 'TEST_SOS',
+      user,
+      contacts: user.emergencyContacts,
+      location,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Test SOS processed',
+      data: result,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Server Error',
     });
   }
 };

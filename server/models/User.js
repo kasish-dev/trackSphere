@@ -26,21 +26,55 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
-  subscription: {
+  accountType: {
     type: String,
-    enum: ['free', 'premium', 'business'],
-    default: 'free',
-  },
-  preferences: {
-    notifications: { type: Boolean, default: true },
-    locationPrivacy: { type: Boolean, default: false },
-    theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' }
+    enum: ['individual', 'business_owner', 'employee'],
+    default: 'individual',
   },
   subscriptionTier: {
     type: String,
-    enum: ['FREE', 'PREMIUM'],
+    enum: ['FREE', 'PRO', 'BUSINESS', 'ENTERPRISE'],
     default: 'FREE'
   },
+  trialStatus: {
+    type: String,
+    enum: ['inactive', 'active', 'expired', 'converted'],
+    default: 'inactive',
+  },
+  trialStartedAt: {
+    type: Date,
+    default: null,
+  },
+  trialEndsAt: {
+    type: Date,
+    default: null,
+  },
+  lastActiveAt: {
+    type: Date,
+    default: Date.now,
+  },
+  subscriptionUpdatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  preferences: {
+    notifications: { type: Boolean, default: true },
+    pushNotifications: { type: Boolean, default: true },
+    locationPrivacy: { type: Boolean, default: false },
+    theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' }
+  },
+  emergencyContacts: [
+    {
+      name: { type: String, required: true },
+      email: { type: String },
+      phone: { type: String },
+      preferredChannel: {
+        type: String,
+        enum: ['sms', 'email', 'whatsapp', 'telegram'],
+        default: 'sms',
+      }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
@@ -48,6 +82,10 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+userSchema.path('emergencyContacts').validate(function validateEmergencyContacts(contacts) {
+  return contacts.every((contact) => Boolean(contact.phone || contact.email));
+}, 'Each emergency contact must include at least a phone number or an email address.');
 
 // Encyrpt password using bcrypt
 userSchema.pre('save', async function () {

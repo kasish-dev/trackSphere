@@ -1,0 +1,17 @@
+{
+  "short_name": "TrackSphere",
+  "name": "TrackSphere | AI Live Tracking",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#6366f1",
+  "background_color": "#ffffff",
+  "description": "SaaS Platform for real-time team and fleet tracking with AI safety alerts."
+}

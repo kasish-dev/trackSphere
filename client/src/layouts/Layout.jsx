@@ -2,17 +2,39 @@ import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { Map, Users, Settings, LogOut, Menu, X, Bell, History } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Map as MapIcon, 
+  Users, 
+  History, 
+  Settings, 
+  LogOut, 
+  Bell, 
+  Menu, 
+  MessageSquare,
+  Activity,
+  Zap,
+  Crown,
+  Shield,
+  Receipt
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchNotifications, addLocalNotification } from '../redux/notificationSlice';
 import socket from '../services/socket';
+import { showBrowserNotification } from '../services/browserNotifications';
 
 const Layout = () => {
   const { user } = useSelector((state) => state.auth);
   const { unreadCount } = useSelector((state) => state.notifications);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+  const isAdmin = user?.user?.role === 'admin';
+  const isBusinessOwner = user?.user?.accountType === 'business_owner';
+  const subscriptionTier = user?.user?.subscriptionTier;
+  const canAccessAnalytics = isAdmin || ['BUSINESS', 'ENTERPRISE'].includes(subscriptionTier);
+  const canManageBilling = isAdmin || isBusinessOwner || !['BUSINESS', 'ENTERPRISE'].includes(subscriptionTier);
 
   useEffect(() => {
     if (user) {
@@ -28,6 +50,15 @@ const Layout = () => {
           isRead: false,
           createdAt: new Date().toISOString()
         }));
+
+        if (user?.user?.preferences?.pushNotifications !== false) {
+          showBrowserNotification({
+            title: 'TrackSphere SOS Alert',
+            body: `${data.userName} triggered an SOS.`,
+            tag: `sos-${data.userId}`,
+            data: { path: '/notifications' }
+          });
+        }
       });
 
       socket.on('geofence-alert', (alert) => {
@@ -39,6 +70,15 @@ const Layout = () => {
           isRead: false,
           createdAt: new Date().toISOString()
         }));
+
+        if (user?.user?.preferences?.pushNotifications !== false) {
+          showBrowserNotification({
+            title: 'TrackSphere Geofence Alert',
+            body: `${alert.userName} ${alert.type === 'exit' ? 'left' : 'entered'} ${alert.fenceName}.`,
+            tag: `geofence-${alert.userId}-${alert.fenceName}`,
+            data: { path: '/notifications' }
+          });
+        }
       });
 
       socket.on('new-member-alert', (alert) => {
@@ -50,6 +90,15 @@ const Layout = () => {
           isRead: false,
           createdAt: new Date().toISOString()
         }));
+
+        if (user?.user?.preferences?.pushNotifications !== false) {
+          showBrowserNotification({
+            title: 'TrackSphere Group Update',
+            body: `${alert.userName} joined the group.`,
+            tag: `group-join-${alert.userName}-${alert.timestamp}`,
+            data: { path: '/notifications' }
+          });
+        }
       });
 
       socket.on('safety-anomaly', (alert) => {
@@ -61,6 +110,15 @@ const Layout = () => {
           isRead: false,
           createdAt: new Date().toISOString()
         }));
+
+        if (user?.user?.preferences?.pushNotifications !== false) {
+          showBrowserNotification({
+            title: 'TrackSphere Safety Alert',
+            body: alert.message,
+            tag: `safety-${alert.userId}-${alert.type || 'alert'}`,
+            data: { path: '/notifications' }
+          });
+        }
       });
     }
 
@@ -78,11 +136,21 @@ const Layout = () => {
   };
 
   const navItems = [
-    { name: 'Live Map', path: '/', icon: <Map size={20} /> },
-    { name: 'Groups', path: '/groups', icon: <Users size={20} /> },
-    { name: 'History', path: '/history', icon: <History size={20} /> },
-    { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
-  ];
+    { name: 'Live Map', path: '/dashboard', icon: MapIcon },
+    { name: 'Groups', path: '/groups', icon: Users },
+    { name: 'Chat', path: '/chat', icon: MessageSquare },
+    { name: 'History', path: '/history', icon: History },
+    { name: 'Analytics', path: '/analytics', icon: Activity, premium: true },
+    { name: 'Billing', path: '/billing', icon: Receipt },
+    { name: 'Settings', icon: Settings, path: '/settings' },
+    { name: 'Upgrade', icon: Crown, path: '/upgrade', highlight: true },
+  ].filter((item) => {
+    if ((item.path === '/billing' || item.path === '/upgrade') && !canManageBilling) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-900 dark:to-primary-950 text-gray-900 dark:text-gray-100 overflow-hidden">
@@ -94,7 +162,7 @@ const Layout = () => {
       >
         <div className="p-6 flex items-center gap-3">
           <div className="bg-primary-600 p-2 rounded-lg">
-            <Map className="text-white" size={24} />
+            <MapIcon className="text-white" size={24} />
           </div>
           {isSidebarOpen && <span className="font-bold text-xl tracking-tight">TrackSphere</span>}
         </div>
@@ -104,12 +172,42 @@ const Layout = () => {
             <Link
               key={item.name}
               to={item.path}
-              className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition"
+              className={`flex items-center px-4 py-3 rounded-xl transition
+                  ${
+                    item.highlight 
+                      ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-100 dark:border-amber-800 shadow-sm' 
+                      : location.pathname === item.path
+                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 border border-primary-100 dark:border-primary-800 shadow-sm'
+                        : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white border border-transparent'
+                  }
+                `}
             >
-              {item.icon}
-              {isSidebarOpen && <span className="font-medium">{item.name}</span>}
-            </Link>
+                <item.icon className="mr-3 h-5 w-5 shrink-0" />
+                {isSidebarOpen && <span className="font-bold">{item.name}</span>}
+                {isSidebarOpen && item.highlight && (
+                  <span className="ml-auto bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Pro</span>
+                )}
+                {isSidebarOpen && item.premium && !canAccessAnalytics && (
+                  <Zap size={14} className="ml-auto text-amber-500 animate-pulse" />
+                )}
+              </Link>
           ))}
+          
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`flex items-center px-4 py-3 rounded-xl transition mt-10
+                ${
+                  location.pathname === '/admin'
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-100 dark:border-red-800'
+                    : 'text-gray-500 hover:bg-red-50/50 dark:hover:bg-red-900/10 hover:text-red-600 border border-transparent'
+                }
+              `}
+            >
+              <Shield className="mr-3 h-5 w-5 shrink-0" />
+              {isSidebarOpen && <span className="font-bold">Admin Panel</span>}
+            </Link>
+          )}
         </nav>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -119,7 +217,7 @@ const Layout = () => {
               <p className="text-sm font-semibold truncate">{user?.user?.name || 'User'}</p>
             </div>
           )}
-          <button
+          <button 
             onClick={handleLogout}
             className="flex items-center gap-4 px-4 py-3 w-full rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition"
           >
@@ -158,7 +256,7 @@ const Layout = () => {
         <main className="flex-1 overflow-y-auto bg-transparent relative z-0">
           <AnimatePresence mode="wait">
             <motion.div
-              key={window.location.pathname}
+              key={location.pathname}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}

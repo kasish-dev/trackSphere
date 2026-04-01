@@ -17,7 +17,7 @@ export const updateLocation = createAsyncThunk(
   async (locationData, thunkAPI) => {
     try {
       const response = await axios.put(API_URL, locationData, getConfig(thunkAPI));
-      return response.data.data;
+      return response.data;
     } catch (error) {
       const message = error.response?.data?.error || error.message;
       return thunkAPI.rejectWithValue(message);
@@ -59,10 +59,38 @@ export const fetchHistoryRange = createAsyncThunk(
   }
 );
 
+export const fetchWorkSummary = createAsyncThunk(
+  'location/fetchWorkSummary',
+  async (date, thunkAPI) => {
+    try {
+      const url = date ? `${API_URL}work-summary?date=${date}` : `${API_URL}work-summary`;
+      const response = await axios.get(url, getConfig(thunkAPI));
+      return response.data.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+export const checkOutWorkSession = createAsyncThunk(
+  'location/checkOutWorkSession',
+  async (_, thunkAPI) => {
+    try {
+      const response = await axios.post(`${API_URL}check-out`, {}, getConfig(thunkAPI));
+      return response.data.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 const locationSlice = createSlice({
   name: 'location',
   initialState: {
     history: [],
+    workSummary: null,
     isInvisible: localStorage.getItem('isInvisible') === 'true',
     isLoading: false,
     isError: false,
@@ -83,9 +111,10 @@ const locationSlice = createSlice({
       .addCase(updateLocation.pending, (state) => {
         state.isLoading = true;
       })
-      .addCase(updateLocation.fulfilled, (state) => {
+      .addCase(updateLocation.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isError = false;
+        state.workSummary = action.payload?.workSession || state.workSummary;
       })
       .addCase(updateLocation.rejected, (state, action) => {
         state.isLoading = false;
@@ -115,6 +144,21 @@ const locationSlice = createSlice({
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
+      })
+      .addCase(fetchWorkSummary.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchWorkSummary.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.workSummary = action.payload;
+      })
+      .addCase(fetchWorkSummary.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      .addCase(checkOutWorkSession.fulfilled, (state, action) => {
+        state.workSummary = action.payload;
       });
   },
 });

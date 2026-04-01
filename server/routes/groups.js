@@ -1,5 +1,5 @@
 const express = require('express');
-const { createGroup, getGroups, joinGroup } = require('../controllers/groups');
+const { createGroup, getGroups, joinGroup, deleteGroup } = require('../controllers/groups');
 
 const router = express.Router();
 
@@ -12,6 +12,8 @@ router.route('/')
   .post(createGroup);
 
 router.post('/join', joinGroup);
+
+router.delete('/:groupId', deleteGroup);
 
 // Geofence routes
 const { createGeofence, getGroupGeofences } = require('../controllers/groups');

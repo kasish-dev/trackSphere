@@ -3,8 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { fetchHistory } from '../redux/locationSlice';
-import { Loader2, History as HistoryIcon, Clock, Calendar, ChevronRight } from 'lucide-react';
+import { fetchHistory, fetchWorkSummary, checkOutWorkSession } from '../redux/locationSlice';
+import { Loader2, History as HistoryIcon, Clock, Calendar, ChevronRight, BriefcaseBusiness, Navigation, LogOut } from 'lucide-react';
 
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -25,7 +25,7 @@ const ChangeView = ({ center, zoom }) => {
 const History = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { history, isLoading } = useSelector((state) => state.location);
+  const { history, workSummary, isLoading } = useSelector((state) => state.location);
   
   const [mapCenter, setMapCenter] = useState([20.5937, 78.9629]);
   const [zoom, setZoom] = useState(5);
@@ -34,6 +34,7 @@ const History = () => {
   useEffect(() => {
     if (user?.user?.id) {
       dispatch(fetchHistory(user.user.id));
+      dispatch(fetchWorkSummary());
     }
   }, [dispatch, user]);
 
@@ -67,6 +68,36 @@ const History = () => {
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Recent activity for {user?.user?.name}
           </p>
+        </div>
+
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-primary-50/60 dark:bg-primary-900/10">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center shrink-0">
+              <BriefcaseBusiness size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest">Today&apos;s Work Summary</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                {workSummary?.workMinutes ? `${Math.floor(workSummary.workMinutes / 60)}h ${workSummary.workMinutes % 60}m` : 'No session yet'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {workSummary?.checkInAt ? `Check-in: ${new Date(workSummary.checkInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Waiting for first tracked location'}
+              </p>
+              <div className="mt-2 flex gap-3 text-[11px] text-gray-600">
+                <span className="inline-flex items-center gap-1"><Navigation size={12} /> {workSummary?.totalDistanceKm || 0} km</span>
+                <span className="inline-flex items-center gap-1"><Clock size={12} /> {workSummary?.totalPings || 0} pings</span>
+              </div>
+              {workSummary?.status === 'OPEN' && (
+                <button
+                  onClick={() => dispatch(checkOutWorkSession()).then(() => dispatch(fetchWorkSummary()))}
+                  className="mt-3 inline-flex items-center gap-1 rounded-lg border border-primary-200 bg-white px-3 py-1.5 text-[11px] font-bold text-primary-700 transition hover:bg-primary-50"
+                >
+                  <LogOut size={12} />
+                  Manual Check-out
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">

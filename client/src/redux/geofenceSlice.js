@@ -49,6 +49,12 @@ const geofenceSlice = createSlice({
       state.isError = false;
       state.message = '';
     },
+    addGeofence: (state, action) => {
+      // Avoid duplicates
+      if (!state.fences.find(f => f._id === action.payload._id)) {
+        state.fences.push(action.payload);
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -70,5 +76,5 @@ const geofenceSlice = createSlice({
   },
 });
 
-export const { resetGeofenceState } = geofenceSlice.actions;
+export const { resetGeofenceState, addGeofence } = geofenceSlice.actions;
 export default geofenceSlice.reducer;

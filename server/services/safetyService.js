@@ -3,7 +3,7 @@ const SafetyAlert = require('../models/SafetyAlert');
 const Notification = require('../models/Notification');
 
 // In-memory state tracking for real-time anomaly detection
-// { userId: { lastLat, lastLng, lastMoveTime, lastAlertTime, currentSpeed } }
+// { userId: { lastLat, lastLng, lastMoveTime, lastAlertTime, lastUpdate, lastSpeed } }
 const userStates = new Map();
 
 /**
@@ -64,8 +64,13 @@ exports.processUpdate = async (io, data) => {
   } else {
     const stationaryTimeMinutes = (now - state.lastMoveTime) / (1000 * 60);
     
-    // Alert if stationary > 15 mins AND not already alerted in the last 30 mins
-    if (stationaryTimeMinutes >= 15 && (now - state.lastAlertTime) > (30 * 60 * 1000)) {
+    // NIGHT SAFETY MODE: Increase sensitivity after 10 PM or before 5 AM
+    const hour = new Date().getHours();
+    const isNightMode = hour >= 22 || hour <= 5;
+    const stationaryThreshold = isNightMode ? 8 : 15; // 8 mins at night, 15 mins day
+    
+    // Alert if stationary > threshold AND not already alerted in the last 30 mins
+    if (stationaryTimeMinutes >= stationaryThreshold && (now - state.lastAlertTime) > (20 * 60 * 1000)) {
       
       // CRITICAL: Check if in a safe zone (Geofence) before alerting
       const safe = await isInsideAnyGeofence(lat, lng, groupId);
@@ -81,7 +86,7 @@ exports.processUpdate = async (io, data) => {
           type: alertType,
           lat,
           lng,
-          message: `${userName} has been stationary for ${Math.round(stationaryTimeMinutes)} mins in an unrecognized area.`
+          message: `${userName} has been stationary for ${Math.round(stationaryTimeMinutes)} mins in an unrecognized area.${isNightMode ? ' [NIGHT ALERT]' : ''}`
         });
 
         // Save to DB (Safety History)
@@ -125,18 +130,70 @@ exports.processUpdate = async (io, data) => {
     }
   }
 
-  // 2. VELOCITY ANOMALY CHECK (Sudden impossible speed)
+  // 2. SUDDEN STOP DETECTION (Crash/Emergency)
   const timeDiffSeconds = (now - state.lastUpdate) / 1000;
-  if (timeDiffSeconds > 0) {
+  if (timeDiffSeconds > 0 && timeDiffSeconds < 10) { // Only check if updates are frequent
     const speedKmh = (distance / 1000) / (timeDiffSeconds / 3600);
     
-    // If speed > 150km/h (likely GPS glitch or extreme speed)
-    if (speedKmh > 150 && state.lastUpdate) {
-        // Log it as a potential anomaly if needed, but we keep it simpler for now
-        // This can be used for "Route Deviation" in future phases
+    // Detect "Sudden Stop": High speed (>30km/h) to low speed (<2km/h) in < 10s
+    if (state.lastSpeed > 30 && speedKmh < 2) {
+        const alertType = 'SUDDEN_STOP';
+        
+        io.to(groupId).emit('safety-anomaly', {
+            userId,
+            userName,
+            type: alertType,
+            lat,
+            lng,
+            message: `⚠️ SUDDEN STOP DETECTED: ${userName} was moving at ${Math.round(state.lastSpeed)} km/h and stopped abruptly.`
+        });
+
+        // Save to DB (Safety History)
+        await SafetyAlert.create({
+            user: userId,
+            group: groupId,
+            type: alertType,
+            location: { lat, lng },
+            metadata: { prevSpeed: Math.round(state.lastSpeed) }
+        });
     }
+    state.lastSpeed = speedKmh;
   }
   
+  // 3. ROUTE DEVIATION (Basic Bounding Box Check)
+  // Store recent points in state
+  if (!state.recentPoints) state.recentPoints = [];
+  state.recentPoints.push({ lat, lng });
+  if (state.recentPoints.length > 50) state.recentPoints.shift();
+
+  if (state.recentPoints.length === 50) {
+    // Calculate bounding box of last 50 points
+    const lats = state.recentPoints.map(p => p.lat);
+    const lngs = state.recentPoints.map(p => p.lng);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    // If current point is > 5km away from the historical bounds
+    // (Simplified check for demo purposes)
+    const margin = 0.05; // approx 5km
+    if (lat < minLat - margin || lat > maxLat + margin || lng < minLng - margin || lng > maxLng + margin) {
+        // Only alert if we haven't alerted for deviation in last 1 hour
+        if (!state.lastDeviationAlert || (now - state.lastDeviationAlert) > 3600000) {
+            state.lastDeviationAlert = now;
+            io.to(groupId).emit('safety-anomaly', {
+                userId,
+                userName,
+                type: 'ROUTE_DEVIATION',
+                lat,
+                lng,
+                message: `⚠️ ROUTE DEVIATION: ${userName} has significantly deviated from their recent path.`
+            });
+        }
+    }
+  }
+
   state.lastUpdate = now;
   return null;
 };

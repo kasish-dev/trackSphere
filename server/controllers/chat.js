@@ -10,8 +10,8 @@ exports.getMessages = async (req, res) => {
     
     // Define history limit based on tier
     let historyLimitDate = new Date();
-    if (userTier === 'PREMIUM') {
-      // 30 days of history for PRO users
+    if (userTier === 'PRO' || userTier === 'BUSINESS' || userTier === 'ENTERPRISE') {
+      // 30 days of history for paid users
       historyLimitDate.setDate(historyLimitDate.getDate() - 30);
     } else {
       // 24 hours of history for FREE users

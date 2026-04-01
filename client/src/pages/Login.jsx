@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { login, reset } from '../redux/authSlice';
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2, WandSparkles } from 'lucide-react';
+
+const DEMO_ACCOUNTS = [
+  { label: 'Admin Demo', email: 'demo-admin@tracksphere.com', password: 'Demo@12345' },
+  { label: 'Ops Demo', email: 'demo-ops@tracksphere.com', password: 'Demo@12345' },
+  { label: 'Driver Demo', email: 'demo-driver@tracksphere.com', password: 'Demo@12345' },
+];
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -25,7 +31,7 @@ const Login = () => {
     }
 
     if (isSuccess || user) {
-      navigate('/');
+      navigate('/dashboard', { replace: true });
     }
 
     dispatch(reset());
@@ -40,8 +46,18 @@ const Login = () => {
 
   const onSubmit = (e) => {
     e.preventDefault();
+    if (isLoading) {
+      return;
+    }
     const userData = { email, password };
     dispatch(login(userData));
+  };
+
+  const useDemoAccount = (account) => {
+    setFormData({
+      email: account.email,
+      password: account.password,
+    });
   };
 
   return (
@@ -70,6 +86,29 @@ const Login = () => {
           <div className="mt-8">
             <div className="mt-6">
               <form className="space-y-6" onSubmit={onSubmit}>
+                <div className="rounded-2xl border border-primary-100 bg-primary-50/70 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <WandSparkles className="text-primary-600" size={16} />
+                    <p className="text-sm font-bold text-gray-900">Demo Access</p>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Seed demo data with `npm run seed:demo` in `server/`, then use one of these accounts.
+                  </p>
+                  <div className="space-y-2">
+                    {DEMO_ACCOUNTS.map((account) => (
+                      <button
+                        key={account.email}
+                        type="button"
+                        onClick={() => useDemoAccount(account)}
+                        className="w-full text-left rounded-xl border border-white/80 bg-white/80 px-3 py-2 hover:bg-white transition"
+                      >
+                        <div className="text-xs font-black text-primary-600 uppercase tracking-widest">{account.label}</div>
+                        <div className="text-sm font-medium text-gray-900">{account.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Email address

@@ -53,6 +53,20 @@ export const joinGroup = createAsyncThunk(
   }
 );
 
+// Delete group
+export const deleteGroup = createAsyncThunk(
+  'groups/delete',
+  async (groupId, thunkAPI) => {
+    try {
+      await axios.delete(API_URL + groupId, getConfig(thunkAPI));
+      return groupId;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 const groupSlice = createSlice({
   name: 'groups',
   initialState: {
@@ -108,6 +122,20 @@ const groupSlice = createSlice({
         state.groups.push(action.payload);
       })
       .addCase(joinGroup.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      // Delete group
+      .addCase(deleteGroup.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteGroup.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.groups = state.groups.filter(group => group._id !== action.payload);
+      })
+      .addCase(deleteGroup.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;

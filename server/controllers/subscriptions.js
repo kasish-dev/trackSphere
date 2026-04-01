@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 // Initialize Stripe if key is provided
@@ -16,6 +15,10 @@ exports.createCheckoutSession = async (req, res) => {
     const userId = req.user.id;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+    const { planId } = req.body; // 'pro' or 'business'
+    const tierName = planId === 'business' ? 'BUSINESS' : 'PRO';
+    const amount = planId === 'business' ? 999 : 499;
+
     // === DEMO / SIMULATION MODE ===
     // If no Stripe API key is configured, instantly upgrade the user for the sake of the presentation.
     if (!stripe) {
@@ -28,7 +31,9 @@ exports.createCheckoutSession = async (req, res) => {
       }
 
       // Upgrade User
-      user.subscriptionTier = 'PREMIUM';
+      user.subscriptionTier = tierName;
+      user.trialStatus = 'converted';
+      user.subscriptionUpdatedAt = new Date();
       await user.save();
 
       // Return a success URL directly to the frontend
@@ -45,12 +50,12 @@ exports.createCheckoutSession = async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'inr',
             product_data: {
-              name: 'TrackSphere PRO',
-              description: 'Unlock unlimited groups and 30-day location history.',
+              name: `TrackSphere ${tierName}`,
+              description: planId === 'business' ? 'Up to 15 members and full analytics.' : 'Up to 5 members and advanced safety.',
             },
-            unit_amount: 499, // $4.99
+            unit_amount: amount * 100, 
             recurring: {
               interval: 'month',
             },

@@ -2,7 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { register, reset } from '../redux/authSlice';
-import { UserPlus, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Loader2, Briefcase, Users } from 'lucide-react';
+
+const ACCOUNT_TYPES = [
+  {
+    id: 'individual',
+    title: 'Individual User',
+    description: 'For personal safety tracking and family use.',
+    icon: User,
+  },
+  {
+    id: 'business_owner',
+    title: 'Business Owner',
+    description: 'For companies that need billing, analytics, and team oversight.',
+    icon: Briefcase,
+  },
+  {
+    id: 'employee',
+    title: 'Employee',
+    description: 'For staff members joining a tracked team or company group.',
+    icon: Users,
+  },
+];
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,9 +31,10 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    accountType: '',
   });
 
-  const { name, email, password, confirmPassword } = formData;
+  const { name, email, password, confirmPassword, accountType } = formData;
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -27,7 +49,7 @@ const Register = () => {
     }
 
     if (isSuccess || user) {
-      navigate('/');
+      navigate('/dashboard', { replace: true });
     }
 
     dispatch(reset());
@@ -43,10 +65,15 @@ const Register = () => {
   const onSubmit = (e) => {
     e.preventDefault();
 
+    if (!accountType) {
+      alert('Please choose an account type');
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert('Passwords do not match');
     } else {
-      const userData = { name, email, password };
+      const userData = { name, email, password, accountType };
       dispatch(register(userData));
     }
   };
@@ -77,6 +104,41 @@ const Register = () => {
           <div className="mt-8">
             <div className="mt-6">
               <form className="space-y-4" onSubmit={onSubmit}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Account Type
+                  </label>
+                  <div className="mt-2 space-y-2">
+                    {ACCOUNT_TYPES.map((option) => {
+                      const Icon = option.icon;
+                      const selected = accountType === option.id;
+
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setFormData((prevState) => ({ ...prevState, accountType: option.id }))}
+                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                            selected
+                              ? 'border-primary-500 bg-primary-50 text-primary-900'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-primary-200 hover:bg-primary-50/40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${selected ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300'}`}>
+                              <Icon size={18} />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold">{option.title}</div>
+                              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{option.description}</div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Full Name
@@ -167,10 +229,16 @@ const Register = () => {
                   </div>
                 )}
 
+                {!accountType && (
+                  <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 p-4">
+                    <div className="text-sm text-amber-700 dark:text-amber-300">Choose an account type before creating the account.</div>
+                  </div>
+                )}
+
                 <div>
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || !accountType}
                     className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-50"
                   >
                     {isLoading ? (

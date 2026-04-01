@@ -84,7 +84,7 @@ const HistoryPlaybackControls = ({ userId, userName, onClose, onPlaybackUpdate }
   // Adjust date
   const handleDateChange = (newDateStr) => {
     const minAllowedDate = new Date();
-    const limitDays = user?.user?.subscriptionTier === 'PREMIUM' ? 30 : 1;
+    const limitDays = ['PRO', 'BUSINESS', 'ENTERPRISE'].includes(user?.user?.subscriptionTier) ? 30 : 1;
     minAllowedDate.setDate(minAllowedDate.getDate() - limitDays);
     minAllowedDate.setHours(0, 0, 0, 0);
 

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import socket from '../services/socket';
-import { Plus, Users, UserPlus, Copy, Check, Shield, Loader2, AlertCircle, Share2, Zap } from 'lucide-react';
-import { fetchGroups, createGroup, joinGroup, resetGroupState } from '../redux/groupSlice';
+import { Plus, Users, UserPlus, Copy, Check, Shield, Loader2, AlertCircle, Share2, Zap, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fetchGroups, createGroup, joinGroup, deleteGroup, resetGroupState } from '../redux/groupSlice';
 import UpgradeModal from '../components/UpgradeModal';
 
 const Groups = () => {
@@ -12,6 +13,7 @@ const Groups = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [copied, setCopied] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState(null);
   const [searchParams] = useSearchParams();
 
   const dispatch = useDispatch();
@@ -20,7 +22,7 @@ const Groups = () => {
 
   useEffect(() => {
     dispatch(fetchGroups());
-    
+
     // Check for invite code in URL
     const urlCode = searchParams.get('code');
     if (urlCode) {
@@ -45,7 +47,7 @@ const Groups = () => {
     }
 
     // Intercept 403 Tier Limit errors from backend
-    if (isError && message && message.includes('Upgrade to PREMIUM')) {
+    if (isError && message && message.includes('Upgrade to PRO')) {
       setShowUpgradeModal(true);
       dispatch(resetGroupState()); // Clear the error so it doesn't linger
     }
@@ -80,7 +82,7 @@ const Groups = () => {
   const handleOpenAction = (tab) => {
     // Treat undefined or 'FREE' as free tier
     const isFree = !user?.user?.subscriptionTier || user.user.subscriptionTier === 'FREE';
-    
+
     if (isFree && groups.length >= 1) {
       setShowUpgradeModal(true);
       return;
@@ -103,6 +105,12 @@ const Groups = () => {
     }
   };
 
+  const handleDeleteGroup = (groupId, groupName) => {
+    if (window.confirm(`Are you sure you want to delete the group "${groupName}"? This action cannot be undone.`)) {
+      dispatch(deleteGroup(groupId));
+    }
+  };
+
   const getUserRole = (group) => {
     return group.owner?._id === user?.user?.id || group.owner === user?.user?.id
       ? 'Owner'
@@ -117,13 +125,13 @@ const Groups = () => {
           Group Management
         </h1>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={() => handleOpenAction('create')}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-primary-600 shadow-md text-white rounded-lg hover:from-indigo-600 hover:to-primary-700 transition"
           >
             <Plus size={18} /> Create Group
           </button>
-          <button 
+          <button
             onClick={() => handleOpenAction('join')}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300"
           >
@@ -159,9 +167,8 @@ const Groups = () => {
                     <div className="bg-primary-100 dark:bg-primary-900/30 p-2 rounded-lg">
                       <Shield className="text-primary-600 dark:text-primary-400" size={24} />
                     </div>
-                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                      getUserRole(group) === 'Owner' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                    }`}>
+                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${getUserRole(group) === 'Owner' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>
                       {getUserRole(group)}
                     </span>
                   </div>
@@ -169,25 +176,41 @@ const Groups = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     {group.members?.length || 0} member{(group.members?.length || 0) !== 1 ? 's' : ''}
                   </p>
-                  
+
                   <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Invite Code</p>
                       <p className="font-mono text-primary-600 font-bold">{group.inviteCode}</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleCopy(group.inviteCode)}
                       className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-md transition"
                     >
                       {copied === group.inviteCode ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-400" />}
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleShare(group)}
                       className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-md transition text-primary-600"
                       title="Share group"
                     >
                       <Share2 size={16} />
                     </button>
+                    <button
+                      onClick={() => setSelectedGroupMembers(group)}
+                      className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-md transition text-primary-600"
+                      title="View Members"
+                    >
+                      <Users size={16} />
+                    </button>
+                    {getUserRole(group) === 'Owner' && (
+                      <button
+                        onClick={() => handleDeleteGroup(group._id, group.name)}
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition text-red-500"
+                        title="Delete group"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -202,7 +225,7 @@ const Groups = () => {
           <form onSubmit={handleCreateGroup} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 dark:text-gray-300">Group Name</label>
-              <input 
+              <input
                 type="text"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
@@ -211,7 +234,7 @@ const Groups = () => {
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
               />
             </div>
-            <button 
+            <button
               type="submit"
               disabled={isLoading}
               className="w-full py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-bold disabled:opacity-50 flex items-center justify-center"
@@ -231,7 +254,7 @@ const Groups = () => {
           <form onSubmit={handleJoinGroup} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 dark:text-gray-300">Enter Invite Code</label>
-              <input 
+              <input
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
@@ -240,7 +263,7 @@ const Groups = () => {
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white uppercase font-mono"
               />
             </div>
-            <button 
+            <button
               type="submit"
               disabled={isLoading}
               className="w-full py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-bold disabled:opacity-50 flex items-center justify-center"
@@ -255,10 +278,67 @@ const Groups = () => {
       )}
 
       {/* Premium Upgrade Modal */}
-      <UpgradeModal 
-        isOpen={showUpgradeModal} 
-        onClose={() => setShowUpgradeModal(false)} 
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
+
+      {/* Members Modal */}
+      <AnimatePresence>
+        {selectedGroupMembers && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700"
+            >
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-primary-600 text-white">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Users size={20} />
+                  {selectedGroupMembers.name} Members
+                </h3>
+                <button
+                  onClick={() => setSelectedGroupMembers(null)}
+                  className="p-1 hover:bg-white/20 rounded-lg transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-4 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-3">
+                  {selectedGroupMembers.members?.map((member) => (
+                    <div key={member._id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
+                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shrink-0">
+                        {member.name?.[0] || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{member.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        (selectedGroupMembers.owner?._id === member._id || selectedGroupMembers.owner === member._id)
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                      }`}>
+                        {(selectedGroupMembers.owner?._id === member._id || selectedGroupMembers.owner === member._id) ? 'Owner' : 'Member'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <button
+                  onClick={() => setSelectedGroupMembers(null)}
+                  className="px-6 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-bold transition"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const safetyService = require('./services/safetyService');
+const notificationService = require('./services/notificationService');
 
 // Connect to Database
 connectDB();
@@ -41,35 +42,78 @@ const io = new Server(server, {
 app.use(helmet());
 
 // Rate Limiting
-const limiter = rateLimit({
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: isDevelopment ? 1000 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: 'Too many authentication attempts from this IP, please try again after 15 minutes'
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: 'Too many requests from this IP, please try again after 15 minutes'
 });
-app.use('/api/', limiter);
 
 app.use(express.json());
+app.set('io', io); // Attach io to app for use in controllers
+
+// State to track if user was inside a geofence (to prevent alert spam)
+// In a real production app, this should be in Redis or DB
+const userFenceStatus = {}; 
 
 // Routes
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/', apiLimiter);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/location', require('./routes/location'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
+app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/payment', require('./routes/payment'));
 
 // Socket.io initialization
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  const joinGroupRoom = (groupId) => {
+    if (groupId) {
+      socket.join(groupId);
+      console.log(`User ${socket.id} joined group room: ${groupId}`);
+    }
+  };
+
+  const leaveGroupRoom = (groupId) => {
+    if (groupId) {
+      socket.leave(groupId);
+      console.log(`User ${socket.id} left group room: ${groupId}`);
+    }
+  };
+
   // User joins their groups
   socket.on('join-groups', (groupIds) => {
     if (Array.isArray(groupIds)) {
       groupIds.forEach(id => {
-        socket.join(id);
-        console.log(`User ${socket.id} joined group room: ${id}`);
+        joinGroupRoom(id);
       });
     }
+  });
+
+  socket.on('join-group', (groupId) => {
+    joinGroupRoom(groupId);
+  });
+
+  socket.on('leave-group', (groupId) => {
+    leaveGroupRoom(groupId);
   });
 
   // Handle live location update
@@ -109,13 +153,21 @@ io.on('connection', (socket) => {
             fence.center.lat, fence.center.lng
           );
 
-          if (dist <= fence.radius) {
-            // User is inside geofence
+          const isInside = dist <= fence.radius;
+          const statusKey = `${data.userId}_${fence._id}`;
+          const wasInside = userFenceStatus[statusKey] || false;
+
+          // Only trigger if state changed (Enter or Exit)
+          if (isInside !== wasInside) {
+            userFenceStatus[statusKey] = isInside;
+            
+            const eventType = isInside ? 'enter' : 'exit';
+
             io.to(data.groupId).emit('geofence-alert', {
               userId: data.userId,
               userName: data.userName,
               fenceName: fence.name,
-              type: 'enter',
+              type: eventType,
               timestamp: Date.now()
             });
 
@@ -130,11 +182,12 @@ io.on('connection', (socket) => {
                   .map(memberId => ({
                     userId: memberId,
                     type: 'geofence',
-                    message: `${data.userName} entered ${fence.name}`,
+                    message: `${data.userName} ${eventType === 'enter' ? 'entered' : 'left'} ${fence.name}`,
                     data: {
                       groupId: data.groupId,
                       userName: data.userName,
                       fenceName: fence.name,
+                      type: eventType,
                       lat: data.lat,
                       lng: data.lng
                     }
@@ -166,8 +219,12 @@ io.on('connection', (socket) => {
   });
 
   // Handle SOS Alert
-  socket.on('sos-alert', (data) => {
+  socket.on('sos-alert', async (data) => {
     // data: { userId, userName, lat, lng, groupIds: [] }
+      const User = require('./models/User');
+      const userProfile = await User.findById(data.userId);
+
+      // Notify Groups
       data.groupIds.forEach(async (groupId) => {
         // Broadcast to everyone in the room (including sender if they need feedback, but usually to others)
         socket.to(groupId).emit('sos-received', {
@@ -205,7 +262,28 @@ io.on('connection', (socket) => {
           console.error('Save SOS notification error:', err);
         }
       });
-      console.log(`🚨 SOS Alert triggered by ${data.userName} for groups:`, data.groupIds);
+
+      // Notify Personal Emergency Contacts
+      if (userProfile && userProfile.emergencyContacts) {
+        notificationService.sendEmergencyAlert({
+          type: data.isTest ? 'TEST_SOS' : 'SOS_TRIGGERED',
+          user: userProfile,
+          contacts: userProfile.emergencyContacts,
+          location: { lat: data.lat, lng: data.lng }
+        });
+      }
+
+      console.log(`🚨 ${data.isTest ? 'TEST ' : ''}SOS Alert triggered by ${data.userName}`);
+  });
+
+  // Handle SOS Recording
+  socket.on('sos-recording-ready', (data) => {
+    // data: { userId, recordingUrl, groupIds: [] }
+    if (data.groupIds && Array.isArray(data.groupIds)) {
+      data.groupIds.forEach((groupId) => {
+        socket.to(groupId).emit('sos-recording-available', data);
+      });
+    }
   });
 
   // Handle Group Chat Messages
@@ -220,8 +298,10 @@ io.on('connection', (socket) => {
         text: data.text
       });
 
-      // Broadcast to the whole group room including the sender (for multi-device sync)
-      io.to(data.groupId).emit('receive-message', newMessage);
+      // Send immediately back to the sender and broadcast to the rest of the room.
+      // This avoids depending on room-join timing for the sender's own UI update.
+      socket.emit('receive-message', newMessage);
+      socket.to(data.groupId).emit('receive-message', newMessage);
       
       console.log(`💬 Message from ${data.userName} in group ${data.groupId}`);
     } catch (err) {

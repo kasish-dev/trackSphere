@@ -10,25 +10,75 @@ const GroupChat = ({ groupId, groupName, user, isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [tier, setTier] = useState('FREE');
   const scrollRef = useRef(null);
+  const pendingMessageIds = useRef(new Set());
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const normalizeId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value.$oid) return value.$oid;
+    if (typeof value === 'object' && typeof value.toString === 'function') {
+      return value.toString();
+    }
+    return String(value);
+  };
+  const buildMessageKey = (msg) => {
+    const createdAt = msg?.createdAt ? new Date(msg.createdAt).getTime() : '';
+    return [
+      normalizeId(msg?.groupId),
+      normalizeId(msg?.senderId),
+      msg?.text?.trim() || '',
+      createdAt,
+    ].join('|');
+  };
 
   useEffect(() => {
     if (isOpen && groupId) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      socket.emit('join-group', groupId);
       fetchMessages();
     }
+
+    return () => {
+      if (groupId) {
+        socket.emit('leave-group', groupId);
+      }
+    };
   }, [isOpen, groupId]);
 
   useEffect(() => {
-    // Listen for new messages
-    socket.on('receive-message', (msg) => {
-      if (msg.groupId === groupId) {
-        setMessages(prev => [...prev, msg]);
+    const handleReceiveMessage = (msg) => {
+      if (normalizeId(msg.groupId) === normalizeId(groupId)) {
+        const incomingKey = buildMessageKey(msg);
+        pendingMessageIds.current.delete(incomingKey);
+
+        setMessages((prev) => {
+          const existingIndex = prev.findIndex((existingMsg) => {
+            if (existingMsg._id && msg._id) {
+              return existingMsg._id === msg._id;
+            }
+
+            return buildMessageKey(existingMsg) === incomingKey;
+          });
+
+          if (existingIndex !== -1) {
+            const next = [...prev];
+            next[existingIndex] = { ...prev[existingIndex], ...msg, optimistic: false };
+            return next;
+          }
+
+          return [...prev, msg];
+        });
       }
-    });
+    };
+
+    socket.on('receive-message', handleReceiveMessage);
 
     return () => {
-      socket.off('receive-message');
+      socket.off('receive-message', handleReceiveMessage);
     };
   }, [groupId]);
 
@@ -40,6 +90,8 @@ const GroupChat = ({ groupId, groupName, user, isOpen, onClose }) => {
   }, [messages]);
 
   const fetchMessages = async () => {
+    if (!groupId) return;
+
     try {
       setIsLoading(true);
       const userData = JSON.parse(localStorage.getItem('user'));
@@ -49,8 +101,8 @@ const GroupChat = ({ groupId, groupName, user, isOpen, onClose }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setMessages(response.data.messages);
-      setTier(response.data.tier);
+      setMessages(response.data.messages || []);
+      setTier(response.data.tier || 'FREE');
       setIsLoading(false);
     } catch (err) {
       console.error('Fetch messages error:', err);
@@ -62,12 +114,24 @@ const GroupChat = ({ groupId, groupName, user, isOpen, onClose }) => {
     e.preventDefault();
     if (!newMessage.trim() || !user?.user) return;
 
+    const messageText = newMessage.trim();
+    const createdAt = new Date().toISOString();
     const messageData = {
       groupId,
       senderId: user.user.id,
       userName: user.user.name,
-      text: newMessage
+      text: messageText,
+      createdAt
     };
+
+    const optimisticMessage = {
+      ...messageData,
+      _id: `temp-${Date.now()}`,
+      optimistic: true
+    };
+
+    pendingMessageIds.current.add(buildMessageKey(messageData));
+    setMessages((prev) => [...prev, optimisticMessage]);
 
     // Emit via socket (backend handles saving to DB)
     socket.emit('send-message', messageData);
@@ -91,7 +155,7 @@ const GroupChat = ({ groupId, groupName, user, isOpen, onClose }) => {
           <div>
             <h3 className="font-bold text-sm leading-tight">{groupName} Chat</h3>
             <p className="text-[10px] opacity-80 flex items-center gap-1 uppercase tracking-wider font-bold">
-              {tier === 'PREMIUM' ? (
+              {['PRO', 'BUSINESS', 'ENTERPRISE'].includes(tier) ? (
                 <><ShieldCheck size={10} /> 30-Day History Ready</>
               ) : (
                 <><Clock size={10} /> 24h View (Free)</>
@@ -122,7 +186,7 @@ const GroupChat = ({ groupId, groupName, user, isOpen, onClose }) => {
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isMe = msg.senderId === user?.user?.id;
+            const isMe = normalizeId(msg.senderId) === normalizeId(user?.user?.id);
             return (
               <div 
                 key={msg._id || index}

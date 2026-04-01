@@ -1,33 +1,53 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Users, History, Zap, CheckCircle2, X, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { syncUserSession } from '../redux/authSlice';
+import { startPlanCheckout } from '../services/paymentService';
 
 const UpgradeModal = ({ isOpen, onClose }) => {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const handleUpgradeClick = async () => {
     try {
       setIsLoading(true);
       setError('');
-      
-      const userData = JSON.parse(localStorage.getItem('user'));
-      const token = userData?.token;
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      
-      const response = await axios.post(
-        `${API_URL}/api/subscriptions/create-checkout-session`, 
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      if (response.data?.url) {
-        window.location.href = response.data.url; // Redirect to Stripe (or our simulated Success page)
+      setNotice('');
+
+      const result = await startPlanCheckout({
+        plan: { id: 'pro', name: 'TrackSphere PRO' },
+        authUser: user,
+        onVerified: (verificationData) => {
+          const updatedUser = verificationData?.user;
+          if (updatedUser) {
+            dispatch(syncUserSession(updatedUser));
+          }
+        },
+      });
+
+      const isMockMode = result?.checkoutMode === 'mock' || result?.mode === 'mock';
+
+      if (isMockMode) {
+        setNotice('Live Razorpay keys are not configured on the server yet, so this upgrade used demo mode instead of opening the checkout popup.');
+      } else {
+        onClose();
       }
+
+      alert(
+        isMockMode
+          ? 'TrackSphere PRO activated in demo mode.'
+          : 'TrackSphere PRO activated successfully.'
+      );
     } catch (err) {
       console.error('Checkout error:', err);
-      setError('Payment gateway error. Please try again later.');
+      if (err.message !== 'Payment cancelled') {
+        setError(err.response?.data?.error || err.message || 'Payment gateway error. Please try again later.');
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -107,7 +127,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium tracking-wide uppercase">Monthly</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-gray-900 dark:text-white">$4.99</span>
+                  <span className="text-3xl font-black text-gray-900 dark:text-white">Rs 499</span>
                   <span className="text-gray-500">/mo</span>
                 </div>
               </div>
@@ -125,6 +145,12 @@ const UpgradeModal = ({ isOpen, onClose }) => {
               <p className="text-red-500 text-sm mb-4 text-center font-bold bg-red-50 p-2 rounded-lg">{error}</p>
             )}
 
+            {notice && (
+              <p className="text-amber-800 text-sm mb-4 text-center font-bold bg-amber-50 p-3 rounded-lg border border-amber-200">
+                {notice}
+              </p>
+            )}
+
             <button 
               onClick={handleUpgradeClick}
               disabled={isLoading}
@@ -132,7 +158,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
             >
               {isLoading ? <Loader2 className="animate-spin" size={24} /> : 'Upgrade to PRO'}
             </button>
-            <p className="text-center text-xs text-gray-400 mt-4">Secure payment via Stripe. No hidden fees.</p>
+            <p className="text-center text-xs text-gray-400 mt-4">Secure payment via Razorpay. No hidden fees.</p>
           </div>
         </motion.div>
       </div>
