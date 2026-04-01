@@ -95,7 +95,9 @@ const Upgrade = () => {
       });
 
       if (result?.checkoutMode === 'mock') {
-        setNotice('Razorpay is currently in demo mode because live keys are not configured on the server. The plan was upgraded using the mock payment path.');
+        setNotice('Razorpay is running in mock mode because payment keys are not configured on the server. The plan was upgraded using the local demo payment path.');
+      } else if (result?.checkoutMode === 'test' || result?.mode === 'test') {
+        setNotice('Razorpay test mode is enabled. Use Razorpay test credentials to complete checkout safely without charging a real card.');
       }
 
       const history = await fetchPaymentHistory({ authUser: user });
@@ -104,6 +106,8 @@ const Upgrade = () => {
       alert(
         result?.checkoutMode === 'mock' || result?.mode === 'mock'
           ? `Successfully upgraded to ${plan.name} in demo mode.`
+          : result?.checkoutMode === 'test' || result?.mode === 'test'
+            ? `Successfully upgraded to ${plan.name} in Razorpay test mode.`
           : `Successfully upgraded to ${plan.name}.`
       );
     } catch (err) {

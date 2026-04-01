@@ -366,7 +366,7 @@ const Dashboard = () => {
   };
 
   const handleSOS = async () => {
-    if (!myLocation || !groups || groups.length === 0 || !user?.user) return;
+    if (!myLocation || !user?.user) return;
     
     // Start Recording (Best Effort)
     try {
@@ -383,7 +383,7 @@ const Dashboard = () => {
         socket.emit('sos-recording-ready', {
             userId: user.user.id,
             recordingUrl: url,
-            groupIds: groups.map(g => g._id)
+            groupIds: (groups || []).map(g => g._id)
         });
       };
       
@@ -408,7 +408,7 @@ const Dashboard = () => {
       userName: user.user.name,
       lat: myLocation.lat,
       lng: myLocation.lng,
-      groupIds: groups.map(g => g._id)
+      groupIds: (groups || []).map(g => g._id)
     });
 
     // Show local confirmation/state
@@ -720,7 +720,7 @@ const Dashboard = () => {
               : 'Your live location, SOS tools, and trusted-circle tracking are active.'}
           </p>
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <button onClick={handleSOS} disabled={!myLocation || !groups?.length} className="rounded-xl bg-red-600 text-white py-2 text-xs font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition">
+            <button onClick={handleSOS} disabled={!myLocation} className="rounded-xl bg-red-600 text-white py-2 text-xs font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition">
               Trigger SOS
             </button>
             <button onClick={() => navigate('/notifications')} className="rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-800 transition">

@@ -30,9 +30,12 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       });
 
       const isMockMode = result?.checkoutMode === 'mock' || result?.mode === 'mock';
+      const isTestMode = result?.checkoutMode === 'test' || result?.mode === 'test';
 
       if (isMockMode) {
-        setNotice('Live Razorpay keys are not configured on the server yet, so this upgrade used demo mode instead of opening the checkout popup.');
+        setNotice('Razorpay is running in mock mode because payment keys are not configured on the server. This upgrade used the local demo payment path instead of opening checkout.');
+      } else if (isTestMode) {
+        setNotice('Razorpay test mode is enabled. Complete checkout with Razorpay test card details and no real charge will be made.');
       } else {
         onClose();
       }
@@ -40,6 +43,8 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       alert(
         isMockMode
           ? 'TrackSphere PRO activated in demo mode.'
+          : isTestMode
+            ? 'TrackSphere PRO activated in Razorpay test mode.'
           : 'TrackSphere PRO activated successfully.'
       );
     } catch (err) {

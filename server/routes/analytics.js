@@ -1,10 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const { getDailyAnalytics, getAnalyticsReport, getPrintableAnalyticsReport } = require('../controllers/analytics');
-const { protect, authorizeTier } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
-router.get('/daily', protect, authorizeTier('BUSINESS', 'ENTERPRISE'), getDailyAnalytics);
-router.get('/report', protect, authorizeTier('BUSINESS', 'ENTERPRISE'), getAnalyticsReport);
-router.get('/report/print', protect, authorizeTier('BUSINESS', 'ENTERPRISE'), getPrintableAnalyticsReport);
+const authorizeAnalyticsAccess = (req, res, next) => {
+  const isAdmin = req.user?.role === 'admin';
+  const hasAnalyticsTier = ['BUSINESS', 'ENTERPRISE'].includes(req.user?.subscriptionTier);
+
+  if (!isAdmin && !hasAnalyticsTier) {
+    return res.status(403).json({
+      success: false,
+      error: 'Analytics are only available on BUSINESS and ENTERPRISE plans',
+    });
+  }
+
+  next();
+};
+
+router.get('/daily', protect, authorizeAnalyticsAccess, getDailyAnalytics);
+router.get('/report', protect, authorizeAnalyticsAccess, getAnalyticsReport);
+router.get('/report/print', protect, authorizeAnalyticsAccess, getPrintableAnalyticsReport);
 
 module.exports = router;

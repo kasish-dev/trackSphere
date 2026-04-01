@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -22,6 +22,23 @@ import { validateSession } from './redux/authSlice';
 const SessionLoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-sm text-gray-500 dark:text-gray-300">
     Validating your session...
+  </div>
+);
+
+const AccessNotice = ({ title, message, ctaLabel, ctaPath }) => (
+  <div className="p-8 max-w-3xl mx-auto">
+    <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-6 py-6 text-amber-900">
+      <h1 className="text-2xl font-black">{title}</h1>
+      <p className="mt-2 text-sm font-medium">{message}</p>
+      {ctaLabel && ctaPath && (
+        <Link
+          to={ctaPath}
+          className="mt-5 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-sm font-black text-white transition hover:bg-amber-700"
+        >
+          {ctaLabel}
+        </Link>
+      )}
+    </div>
   </div>
 );
 
@@ -75,7 +92,14 @@ const BusinessOnlyRoute = ({ children }) => {
   const tier = user?.user?.subscriptionTier;
   const isAllowed = user?.user?.role === 'admin' || tier === 'BUSINESS' || tier === 'ENTERPRISE';
 
-  return isAllowed ? children : <Navigate to="/upgrade" replace />;
+  return isAllowed ? children : (
+    <AccessNotice
+      title="Analytics Locked"
+      message="Analytics are available on BUSINESS and ENTERPRISE plans. Upgrade your workspace plan to unlock reports and tracking insights."
+      ctaLabel="Open Upgrade"
+      ctaPath="/upgrade"
+    />
+  );
 };
 
 const BillingManagerRoute = ({ children }) => {

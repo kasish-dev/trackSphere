@@ -1,5 +1,4 @@
 const express = require('express');
-const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { protect, authorizeBillingAccess } = require('../middleware/auth');
 const User = require('../models/User');
@@ -10,15 +9,63 @@ const { buildInvoiceHtml, createPaymentRecord, serializePaymentRecord } = requir
 
 const router = express.Router();
 
-const getRazorpayClient = () => {
+const getRazorpayMode = () => (process.env.RAZORPAY_MODE || 'test').toLowerCase();
+
+const buildReceiptId = (userId) => {
+  const normalizedUserId = String(userId || '').replace(/[^a-zA-Z0-9]/g, '').slice(-12);
+  const timestamp = Date.now().toString(36).slice(-10);
+  return `ts${normalizedUserId}${timestamp}`.slice(0, 40);
+};
+
+const getRazorpayCredentials = () => {
+  const mode = getRazorpayMode();
+
+  if (mode === 'mock') {
+    return null;
+  }
+
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     return null;
   }
 
-  return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  return {
+    keyId: process.env.RAZORPAY_KEY_ID,
+    keySecret: process.env.RAZORPAY_KEY_SECRET,
+  };
+};
+
+const createRazorpayOrder = async ({ amount, currency, receipt, notes, credentials }) => {
+  const authToken = Buffer.from(`${credentials.keyId}:${credentials.keySecret}`).toString('base64');
+
+  const response = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${authToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount,
+      currency,
+      receipt,
+      notes,
+    }),
   });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      payload?.error?.description
+      || payload?.description
+      || payload?.message
+      || 'Failed to create Razorpay order'
+    );
+    error.statusCode = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload;
 };
 
 // @desc    Create Razorpay Order
@@ -28,14 +75,15 @@ router.post('/create-order', protect, authorizeBillingAccess(), async (req, res)
   try {
     const { plan } = req.body;
     const planConfig = getPlanConfig(plan);
+    const razorpayMode = getRazorpayMode();
 
     if (!planConfig || planConfig.amount <= 0) {
       return res.status(400).json({ success: false, error: 'Invalid paid plan selected' });
     }
 
-    const razorpay = getRazorpayClient();
+    const razorpayCredentials = getRazorpayCredentials();
 
-    if (!razorpay) {
+    if (!razorpayCredentials) {
       return res.status(200).json({
         success: true,
         key: process.env.RAZORPAY_KEY_ID || null,
@@ -46,18 +94,20 @@ router.post('/create-order', protect, authorizeBillingAccess(), async (req, res)
           mock: true,
         },
         plan: planConfig,
+        mode: process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? razorpayMode : 'mock',
       });
     }
 
-    const order = await razorpay.orders.create({
+    const order = await createRazorpayOrder({
       amount: planConfig.amount * 100,
       currency: planConfig.currency,
-      receipt: `ts_${req.user.id}_${Date.now()}`,
+      receipt: buildReceiptId(req.user.id),
       notes: {
         userId: String(req.user.id),
         planId: planConfig.id,
         tier: planConfig.tier,
       },
+      credentials: razorpayCredentials,
     });
 
     res.status(200).json({
@@ -65,10 +115,12 @@ router.post('/create-order', protect, authorizeBillingAccess(), async (req, res)
       key: process.env.RAZORPAY_KEY_ID,
       order,
       plan: planConfig,
+      mode: razorpayMode,
     });
   } catch (err) {
     console.error('Razorpay Order Error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to create Razorpay order' });
+    const errorMessage = err?.payload?.error?.description || err.message || 'Failed to create Razorpay order';
+    res.status(err.statusCode || 500).json({ success: false, error: errorMessage });
   }
 });
 
@@ -79,6 +131,7 @@ router.post('/verify-payment', protect, authorizeBillingAccess(), async (req, re
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
     const planConfig = getPlanConfig(plan);
+    const razorpayMode = getRazorpayMode();
 
     if (!planConfig || planConfig.amount <= 0) {
       return res.status(400).json({ success: false, error: 'Invalid paid plan selected' });
@@ -136,7 +189,7 @@ router.post('/verify-payment', protect, authorizeBillingAccess(), async (req, re
         subscriptionTier: user.subscriptionTier,
         plan: planConfig,
         invoice: serializePaymentRecord(paymentRecord),
-        mode: isMockPayment ? 'mock' : 'live',
+        mode: isMockPayment ? 'mock' : razorpayMode,
       },
     });
   } catch (err) {

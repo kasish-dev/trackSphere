@@ -36,9 +36,15 @@ Optional payment configuration:
 
 ```env
 STRIPE_SECRET_KEY=sk_test_...
-RAZORPAY_KEY_ID=...
+RAZORPAY_MODE=test
+RAZORPAY_KEY_ID=rzp_test_...
 RAZORPAY_KEY_SECRET=...
 ```
+
+Razorpay modes:
+- `test`: uses Razorpay test keys and opens the real Razorpay checkout in sandbox mode.
+- `mock`: skips Razorpay entirely and uses the local demo payment fallback.
+- `live`: uses live Razorpay keys for production payments.
 
 Optional emergency alert configuration:
 

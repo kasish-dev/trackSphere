@@ -42,6 +42,9 @@ MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 FRONTEND_URL=http://localhost:5173
 PORT=5000
+RAZORPAY_MODE=test
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
 ```
 
 Create a `.env` file inside `client/` if you want a custom API URL:

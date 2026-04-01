@@ -95,6 +95,9 @@ const getAnalyticsPayload = async ({ userId, days }) => {
 };
 
 const buildPrintableReportHtml = ({ user, rangeLabel, payload }) => {
+  const generatedAt = new Date(payload.summary.generatedAt).toLocaleString();
+  const reportStart = new Date(Date.now() - (payload.summary.rangeDays * 24 * 60 * 60 * 1000)).toLocaleDateString();
+  const reportEnd = new Date().toLocaleDateString();
   const rows = payload.daily.map((day) => `
     <tr>
       <td>${day.date}</td>
@@ -105,8 +108,13 @@ const buildPrintableReportHtml = ({ user, rangeLabel, payload }) => {
   `).join('');
 
   const alertRows = payload.alerts.length
-    ? payload.alerts.map((alert) => `<li>${alert._id}: ${alert.count}</li>`).join('')
-    : '<li>No alerts in this period</li>';
+    ? payload.alerts.map((alert) => `
+      <tr>
+        <td>${alert._id.replace(/_/g, ' ')}</td>
+        <td>${alert.count}</td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="2">No alerts in this period</td></tr>';
 
   return `<!doctype html>
 <html>
@@ -114,44 +122,235 @@ const buildPrintableReportHtml = ({ user, rangeLabel, payload }) => {
   <meta charset="utf-8" />
   <title>TrackSphere ${rangeLabel} Report</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 32px; color: #111827; }
-    h1, h2 { margin-bottom: 8px; }
-    .meta, .cards { margin-bottom: 24px; }
-    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { border: 1px solid #e5e7eb; padding: 10px; text-align: left; }
-    th { background: #f9fafb; }
-    ul { padding-left: 20px; }
+    :root {
+      --ink: #111827;
+      --muted: #4b5563;
+      --line: #cbd5e1;
+      --soft: #f8fafc;
+      --soft-2: #eef2ff;
+      --panel: #ffffff;
+      --brand: #1d4ed8;
+      --brand-dark: #1e3a8a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+    }
+    .page {
+      padding: 20px;
+    }
+    .report-shell {
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .report-header {
+      border-bottom: 3px solid var(--brand);
+      padding: 18px 20px 14px;
+      background: linear-gradient(180deg, #f8fbff, #ffffff);
+    }
+    .report-kicker {
+      font-size: 10px;
+      color: var(--brand-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-weight: 700;
+    }
+    .report-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .report-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: var(--brand-dark);
+    }
+    .report-subtitle {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .report-badge {
+      border: 1px solid var(--line);
+      background: var(--soft-2);
+      padding: 10px 12px;
+      min-width: 180px;
+      text-align: right;
+    }
+    .report-badge-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+    .report-badge-value {
+      font-size: 15px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .section {
+      padding: 16px 20px 0;
+    }
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand-dark);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .report-table {
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+    .report-table thead th {
+      background: #edf4ff;
+      color: var(--brand-dark);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      font-weight: 800;
+    }
+    .report-table tbody td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      vertical-align: top;
+    }
+    .report-table tbody tr:nth-child(even) td {
+      background: #fbfdff;
+    }
+    .meta-table td:first-child,
+    .summary-table td:first-child {
+      width: 28%;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .summary-table td:last-child {
+      font-weight: 700;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 14px;
+    }
+    .muted-note {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .footnote {
+      padding: 6px 20px 20px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+    }
+    @page {
+      size: A4;
+      margin: 14mm;
+    }
+    @media print {
+      .page { padding: 0; }
+      .report-shell, .report-table {
+        break-inside: avoid;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>TrackSphere ${rangeLabel} Report</h1>
-  <div class="meta">
-    <div><strong>User:</strong> ${user.name}</div>
-    <div><strong>Email:</strong> ${user.email}</div>
-    <div><strong>Generated:</strong> ${new Date(payload.summary.generatedAt).toLocaleString()}</div>
+  <div class="page">
+    <div class="report-shell">
+      <section class="report-header">
+        <div class="report-kicker">TrackSphere Analytics</div>
+        <div class="report-title-row">
+          <div>
+            <h1 class="report-title">${rangeLabel} Activity Report</h1>
+            <p class="report-subtitle">Structured movement, battery, and alert summary for the selected reporting period.</p>
+          </div>
+          <div class="report-badge">
+            <div class="report-badge-label">Report Type</div>
+            <div class="report-badge-value">${rangeLabel}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Report Information</h2>
+        <table class="report-table meta-table">
+          <tbody>
+            <tr><td>Customer Name</td><td>${user.name}</td></tr>
+            <tr><td>Email Address</td><td>${user.email}</td></tr>
+            <tr><td>Generated At</td><td>${generatedAt}</td></tr>
+            <tr><td>Reporting Period</td><td>${reportStart} to ${reportEnd}</td></tr>
+            <tr><td>Range Window</td><td>${payload.summary.rangeDays} day(s)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Executive Summary</h2>
+        <table class="report-table summary-table">
+          <tbody>
+            <tr><td>Total Distance Covered</td><td>${payload.summary.totalDistance} km</td></tr>
+            <tr><td>Total Location Pings</td><td>${payload.summary.totalPings}</td></tr>
+            <tr><td>Average Battery Level</td><td>${payload.summary.averageBattery}%</td></tr>
+            <tr><td>Active Days</td><td>${payload.summary.activeDays}</td></tr>
+            <tr><td>Total Safety Alerts</td><td>${payload.summary.totalAlerts}</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <div class="two-col">
+          <div>
+            <h2 class="section-title">Daily Activity Detail</h2>
+            <p class="muted-note">Each row represents one day of recorded tracking history within the report window.</p>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Distance</th>
+                  <th>Battery</th>
+                  <th>Pings</th>
+                </tr>
+              </thead>
+              <tbody>${rows || '<tr><td colspan="4">No tracking data for this period.</td></tr>'}</tbody>
+            </table>
+          </div>
+          <div>
+            <h2 class="section-title">Alert Summary</h2>
+            <p class="muted-note">Safety alerts grouped by alert type for the same reporting period.</p>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Alert Type</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody>${alertRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div class="footnote">Generated by TrackSphere | ${rangeLabel} report | ${payload.summary.rangeDays} day window</div>
+    </div>
   </div>
-  <div class="cards">
-    <div class="card"><strong>Total Distance</strong><div>${payload.summary.totalDistance} km</div></div>
-    <div class="card"><strong>Total Pings</strong><div>${payload.summary.totalPings}</div></div>
-    <div class="card"><strong>Average Battery</strong><div>${payload.summary.averageBattery}%</div></div>
-    <div class="card"><strong>Total Alerts</strong><div>${payload.summary.totalAlerts}</div></div>
-  </div>
-  <h2>Movement Summary</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Distance</th>
-        <th>Battery</th>
-        <th>Pings</th>
-      </tr>
-    </thead>
-    <tbody>${rows || '<tr><td colspan="4">No tracking data for this period.</td></tr>'}</tbody>
-  </table>
-  <h2>Safety Alerts</h2>
-  <ul>${alertRows}</ul>
 </body>
 </html>`;
 };

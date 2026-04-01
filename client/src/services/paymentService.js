@@ -23,6 +23,7 @@ export const startPlanCheckout = async ({ plan, authUser, onVerified }) => {
     { plan: plan.id },
     { headers: { Authorization: `Bearer ${token}` } }
   );
+  const paymentMode = data?.mode || (data.order?.mock ? 'mock' : 'live');
 
   const verifyPayment = async (payload) => {
     const verifyRes = await axios.post(
@@ -68,7 +69,7 @@ export const startPlanCheckout = async ({ plan, authUser, onVerified }) => {
 
     return {
       ...verification,
-      checkoutMode: 'mock',
+      checkoutMode: paymentMode,
     };
   }
 
@@ -97,7 +98,7 @@ export const startPlanCheckout = async ({ plan, authUser, onVerified }) => {
           const verification = await verifyPayment(response);
           resolve({
             ...verification,
-            checkoutMode: 'live',
+            checkoutMode: paymentMode,
           });
         } catch (error) {
           reject(error);
@@ -134,27 +135,49 @@ export const openInvoicePrintView = async ({ authUser, invoiceId }) => {
     throw new Error('You must be logged in to open invoices.');
   }
 
-  const { data } = await axios.get(`${API_URL}/api/payment/invoice/${invoiceId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const html = data?.data?.html;
-  if (!html) {
-    throw new Error('Invoice HTML is not available.');
-  }
-
-  const invoiceWindow = window.open('', '_blank', 'noopener,noreferrer,width=1000,height=800');
+  const invoiceWindow = window.open('', '_blank', 'width=1000,height=800');
   if (!invoiceWindow) {
     throw new Error('Popup blocked. Please allow popups to open the invoice.');
   }
 
-  invoiceWindow.document.open();
-  invoiceWindow.document.write(html);
+  invoiceWindow.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <title>Preparing Invoice...</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 32px; color: #111827; }
+        </style>
+      </head>
+      <body>
+        <h2>Preparing your invoice...</h2>
+        <p>Please wait while TrackSphere loads the printable invoice.</p>
+      </body>
+    </html>
+  `);
   invoiceWindow.document.close();
-  invoiceWindow.focus();
-  setTimeout(() => invoiceWindow.print(), 400);
 
-  return data?.data?.invoice || null;
+  try {
+    const { data } = await axios.get(`${API_URL}/api/payment/invoice/${invoiceId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const html = data?.data?.html;
+    if (!html) {
+      throw new Error('Invoice HTML is not available.');
+    }
+
+    invoiceWindow.document.open();
+    invoiceWindow.document.write(html);
+    invoiceWindow.document.close();
+    invoiceWindow.focus();
+    setTimeout(() => invoiceWindow.print(), 400);
+
+    return data?.data?.invoice || null;
+  } catch (error) {
+    invoiceWindow.close();
+    throw error;
+  }
 };
 
 export const logPaymentFailure = async ({ authUser, planId, reason, orderId = null, paymentId = null, status = 'failed' }) => {

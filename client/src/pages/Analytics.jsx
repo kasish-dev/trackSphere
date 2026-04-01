@@ -14,6 +14,7 @@ const Analytics = () => {
   const { user } = useSelector((state) => state.auth);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [timeRange, setTimeRange] = useState(7);
   const [reportLoading, setReportLoading] = useState('');
 
@@ -24,6 +25,7 @@ const Analytics = () => {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
+        setError('');
         const token = user.token;
         const res = await axios.get(
           `${API_URL}/api/analytics/daily?days=${timeRange}`,
@@ -32,6 +34,8 @@ const Analytics = () => {
         setData(res.data.data);
       } catch (err) {
         console.error('Fetch Analytics Error:', err);
+        setData(null);
+        setError(err.response?.data?.error || err.message || 'Failed to load analytics.');
       } finally {
         setLoading(false);
       }
@@ -40,6 +44,30 @@ const Analytics = () => {
   }, [API_URL, timeRange, user.token]);
 
   const handleExportReport = async (range) => {
+    const reportWindow = window.open('', '_blank', 'width=1000,height=800');
+
+    if (!reportWindow) {
+      alert('Popup blocked. Please allow popups to export the report.');
+      return;
+    }
+
+    reportWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Preparing Report...</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 32px; color: #111827; }
+          </style>
+        </head>
+        <body>
+          <h2>Preparing your report...</h2>
+          <p>Please wait while TrackSphere generates the printable view.</p>
+        </body>
+      </html>
+    `);
+    reportWindow.document.close();
+
     try {
       setReportLoading(range);
       const token = user.token;
@@ -53,17 +81,13 @@ const Analytics = () => {
         throw new Error('Printable report content was not returned.');
       }
 
-      const reportWindow = window.open('', '_blank', 'noopener,noreferrer,width=1000,height=800');
-      if (!reportWindow) {
-        throw new Error('Popup blocked. Please allow popups to export the report.');
-      }
-
       reportWindow.document.open();
       reportWindow.document.write(html);
       reportWindow.document.close();
       reportWindow.focus();
       setTimeout(() => reportWindow.print(), 400);
     } catch (err) {
+      reportWindow.close();
       console.error('Export report error:', err);
       alert(err.response?.data?.error || err.message || 'Failed to export report.');
     } finally {
@@ -80,8 +104,20 @@ const Analytics = () => {
     </div>
   );
 
+  if (error) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto">
+        <div className="rounded-[2rem] border border-red-200 bg-red-50 px-6 py-5 text-red-900">
+          <h1 className="text-2xl font-black">Analytics Unavailable</h1>
+          <p className="mt-2 text-sm font-medium">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   const totalDistance = (data?.summary?.totalDistance ?? data?.daily?.reduce((acc, curr) => acc + curr.distance, 0) ?? 0).toFixed(2);
   const totalAlerts = data?.summary?.totalAlerts ?? data?.alerts?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+  const hasDailyData = Array.isArray(data?.daily) && data.daily.length > 0;
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -159,24 +195,30 @@ const Analytics = () => {
             </div>
           </div>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data?.daily}>
-                <defs>
-                  <linearGradient id="colorDist" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                />
-                <Area type="monotone" dataKey="distance" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorDist)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {hasDailyData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data?.daily}>
+                  <defs>
+                    <linearGradient id="colorDist" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  />
+                  <Area type="monotone" dataKey="distance" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorDist)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-sm font-medium text-gray-400">
+                No movement data recorded for this period.
+              </div>
+            )}
           </div>
         </div>
 
@@ -225,15 +267,21 @@ const Analytics = () => {
           Battery Performance (%)
         </h3>
         <div className="h-[200px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data?.daily}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="battery" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 8 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {hasDailyData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data?.daily}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="battery" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-sm font-medium text-gray-400">
+              Battery trends will appear after location history is collected.
+            </div>
+          )}
         </div>
       </div>
 
