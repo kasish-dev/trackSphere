@@ -132,7 +132,7 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const latestLocation = useRef(null);
   const accountType = user?.user?.accountType || 'individual';
-  const dashboardRoleKey = user?.user?.role === 'admin' ? 'admin' : accountType;
+  const dashboardRoleKey = user?.user?.role === 'superadmin' ? 'admin' : accountType;
   const dashboardMeta = DASHBOARD_META[dashboardRoleKey] || DASHBOARD_META.individual;
   const activeGroup = groups?.[activeGroupIndex] || groups?.[0] || null;
   const onlineMembersCount = Object.keys(membersLocations).length;
@@ -543,7 +543,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="space-y-3">
-              <button onClick={() => navigate('/admin')} className="w-full rounded-xl bg-primary-600 text-white py-2 text-xs font-black uppercase tracking-widest hover:bg-primary-700 transition">
+              <button onClick={() => navigate(user?.user?.role === 'superadmin' ? '/superadmin' : '/admin')} className="w-full rounded-xl bg-primary-600 text-white py-2 text-xs font-black uppercase tracking-widest hover:bg-primary-700 transition">
                 Open Admin Panel
               </button>
               <button onClick={() => navigate('/analytics')} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-800 transition">

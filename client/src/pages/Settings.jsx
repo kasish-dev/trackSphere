@@ -59,16 +59,40 @@ const Settings = () => {
     setIsSaving(false);
   };
 
-  const buildLocalFallback = () => {
+  const getCurrentPosition = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported by this browser.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        reject(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  });
+
+  const buildLocalFallback = (location = { lat: 0, lng: 0 }) => {
     const shareUrl = buildPublicSosUrl({
-      lat: 0,
-      lng: 0,
+      lat: location.lat,
+      lng: location.lng,
       userId: user?.user?.id || 'test-user',
     });
     const shareText = buildSosShareText({
       userName: user?.user?.name || 'TrackSphere user',
-      lat: 0,
-      lng: 0,
+      lat: location.lat,
+      lng: location.lng,
       shareUrl,
       isTest: true,
     });
@@ -107,10 +131,17 @@ const Settings = () => {
       setIsTestingSOS(true);
       const token = user?.token;
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      let currentLocation = { lat: 0, lng: 0 };
+
+      try {
+        currentLocation = await getCurrentPosition();
+      } catch (locationError) {
+        console.warn('Unable to fetch current location for test SOS:', locationError);
+      }
 
       const response = await axios.post(
         `${API_URL}/api/notifications/test-sos`,
-        { lat: 0, lng: 0 },
+        currentLocation,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -121,7 +152,7 @@ const Settings = () => {
       const deliveryResults = response.data?.data?.results || [];
       const hasLiveDelivery = deliveryResults.some((item) => item.mode === 'live' && item.success);
       const sentCount = response.data?.data?.sentCount || 0;
-      const fallback = response.data?.data?.fallback || buildLocalFallback();
+      const fallback = response.data?.data?.fallback || buildLocalFallback(currentLocation);
 
       setTestSOSResult({
         sentCount,

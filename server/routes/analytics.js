@@ -4,7 +4,7 @@ const { getDailyAnalytics, getAnalyticsReport, getPrintableAnalyticsReport } = r
 const { protect } = require('../middleware/auth');
 
 const authorizeAnalyticsAccess = (req, res, next) => {
-  const isAdmin = req.user?.role === 'admin';
+  const isAdmin = ['admin', 'superadmin'].includes(req.user?.role);
   const hasAnalyticsTier = ['BUSINESS', 'ENTERPRISE'].includes(req.user?.subscriptionTier);
 
   if (!isAdmin && !hasAnalyticsTier) {

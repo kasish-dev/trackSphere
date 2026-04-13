@@ -11,8 +11,6 @@ import {
   MessageSquare,
   Receipt,
   BriefcaseBusiness,
-  WandSparkles,
-  PlayCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -50,12 +48,6 @@ const Home = () => {
     }
   ];
 
-  const demoAccounts = [
-    { label: 'Admin Demo', email: 'demo-admin@tracksphere.com', role: 'Investor / owner view' },
-    { label: 'Ops Demo', email: 'demo-ops@tracksphere.com', role: 'Operations and business tracking' },
-    { label: 'Driver Demo', email: 'demo-driver@tracksphere.com', role: 'Field employee experience' },
-  ];
-
   return (
     <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen overflow-x-hidden">
       <nav className="fixed top-0 w-full z-50 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800">
@@ -69,7 +61,6 @@ const Home = () => {
           <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-500 dark:text-gray-400">
             <a href="#features" className="hover:text-primary-600 transition">Features</a>
             <a href="#pricing" className="hover:text-primary-600 transition">Pricing</a>
-            <a href="#demo" className="hover:text-primary-600 transition">Demo</a>
             <Link to="/login" className="hover:text-primary-600 transition">Login</Link>
             <Link to="/register" className="bg-primary-600 text-white px-6 py-3 rounded-full hover:bg-primary-700 transition shadow-lg shadow-primary-500/20">
               Start 7-Day Trial
@@ -85,7 +76,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto text-center">
           <motion.div {...fadeIn}>
             <span className="bg-primary-50 dark:bg-primary-900/30 text-primary-600 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border border-primary-100 dark:border-primary-800">
-              Free 7-Day Trial + Demo System
+              Free 7-Day Trial
             </span>
             <h1 className="text-5xl md:text-8xl font-black mt-8 leading-[1.1] tracking-tight">
               Tracking For Teams. <br />
@@ -99,8 +90,7 @@ const Home = () => {
                 Start Free 7-Day Trial <ArrowRight size={20} className="group-hover:translate-x-1 transition" />
               </Link>
               <Link to="/login" className="w-full md:w-auto bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 px-10 py-5 rounded-2xl font-black text-lg hover:bg-gray-50 transition flex items-center justify-center gap-2">
-                <PlayCircle size={20} />
-                Try Demo Accounts
+                Login
               </Link>
             </div>
           </motion.div>
@@ -125,35 +115,27 @@ const Home = () => {
       <section className="px-6 pb-20">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-gradient-to-br from-primary-600 to-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-primary-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <WandSparkles size={22} />
-              <p className="text-xs font-black uppercase tracking-widest">Fastest Path To Demo</p>
-            </div>
-            <h2 className="text-3xl font-black mb-3">Use seeded demo accounts, sample routes, invoices, alerts, and billing data right away.</h2>
+            <h2 className="text-3xl font-black mb-3">Start with a real account and begin tracking in minutes.</h2>
             <p className="text-primary-100 max-w-2xl">
-              Perfect for investor meetings, customer demos, and QA. TrackSphere now ships with a demo system that shows operations, admin, and field-user flows end to end.
+              Create your workspace, invite your team or family members, and use live tracking, SOS, geofences, and attendance tools from day one.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/login" className="bg-white text-primary-700 px-5 py-3 rounded-2xl font-black text-sm hover:bg-primary-50 transition">
-                Open Demo Login
-              </Link>
               <Link to="/register" className="bg-white/10 border border-white/20 text-white px-5 py-3 rounded-2xl font-black text-sm hover:bg-white/20 transition">
-                Create Real Account
+                Create Account
+              </Link>
+              <Link to="/login" className="bg-white text-primary-700 px-5 py-3 rounded-2xl font-black text-sm hover:bg-primary-50 transition">
+                Login
               </Link>
             </div>
           </div>
-          <div id="demo" className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 p-8 shadow-sm">
-            <h3 className="text-xl font-black mb-4">Demo Accounts</h3>
-            <div className="space-y-3">
-              {demoAccounts.map((account) => (
-                <div key={account.email} className="rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
-                  <p className="text-xs font-black uppercase tracking-widest text-primary-600">{account.label}</p>
-                  <p className="font-semibold mt-1">{account.email}</p>
-                  <p className="text-xs text-gray-500 mt-1">{account.role}</p>
-                </div>
-              ))}
+          <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 p-8 shadow-sm">
+            <h3 className="text-xl font-black mb-4">What you can do first</h3>
+            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+              <p>Create a secure account for yourself or your business.</p>
+              <p>Add emergency contacts and test SOS with your real location.</p>
+              <p>Invite members, create groups, and start live tracking.</p>
+              <p>Enable geofences and attendance-ready movement summaries.</p>
             </div>
-            <p className="text-xs text-gray-500 mt-4">Password after seeding demo data: <span className="font-black text-gray-900 dark:text-white">Demo@12345</span></p>
           </div>
         </div>
       </section>
@@ -260,9 +242,9 @@ const Home = () => {
         <div className="max-w-7xl mx-auto rounded-[3rem] bg-gray-900 text-white p-10 md:p-14 flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="max-w-3xl">
             <p className="text-xs font-black uppercase tracking-widest text-primary-300 mb-3">Get Started</p>
-            <h2 className="text-3xl md:text-5xl font-black leading-tight">Launch a free 7-day trial or open the built-in demo system today.</h2>
+            <h2 className="text-3xl md:text-5xl font-black leading-tight">Launch a free 7-day trial and set up your live tracking workspace today.</h2>
             <p className="text-gray-300 mt-4 text-lg">
-              Perfect for direct outreach, local business demos, family safety use cases, and fleet operations sales.
+              Built for local business operations, family safety use cases, and fleet coordination with real users and real routes.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
@@ -270,7 +252,7 @@ const Home = () => {
               Start Free Trial
             </Link>
             <Link to="/login" className="bg-white/10 border border-white/20 text-white px-8 py-4 rounded-2xl font-black text-center hover:bg-white/20 transition">
-              Use Demo Accounts
+              Login
             </Link>
           </div>
         </div>
@@ -283,11 +265,10 @@ const Home = () => {
               <Navigation className="text-primary-600" size={24} />
               <span className="text-2xl font-black tracking-tighter">TrackSphere</span>
             </div>
-            <p className="text-gray-500 text-sm max-w-xs">Business-ready live tracking, billing, attendance, SOS, and demo workflows in one SaaS product.</p>
+            <p className="text-gray-500 text-sm max-w-xs">Business-ready live tracking, billing, attendance, and SOS workflows in one SaaS product.</p>
           </div>
           <div className="flex gap-10 text-sm font-bold text-gray-400">
             <a href="#pricing" className="hover:text-primary-600 transition">Pricing</a>
-            <a href="#demo" className="hover:text-primary-600 transition">Demo</a>
             <Link to="/login" className="hover:text-primary-600 transition">Login</Link>
           </div>
           <p className="text-xs text-gray-400 font-medium italic">© 2026 TrackSphere SaaS. All rights reserved.</p>

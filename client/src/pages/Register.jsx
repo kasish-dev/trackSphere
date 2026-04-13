@@ -28,13 +28,15 @@ const ACCOUNT_TYPES = [
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
+    companyName: '',
+    workspaceInviteCode: '',
     email: '',
     password: '',
     confirmPassword: '',
     accountType: '',
   });
 
-  const { name, email, password, confirmPassword, accountType } = formData;
+  const { name, companyName, workspaceInviteCode, email, password, confirmPassword, accountType } = formData;
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -49,7 +51,14 @@ const Register = () => {
     }
 
     if (isSuccess || user) {
-      navigate('/dashboard', { replace: true });
+      navigate(
+        user?.user?.role === 'superadmin'
+          ? '/superadmin'
+          : user?.user?.role === 'admin'
+            ? '/admin'
+            : '/dashboard',
+        { replace: true }
+      );
     }
 
     dispatch(reset());
@@ -70,10 +79,20 @@ const Register = () => {
       return;
     }
 
+    if (accountType === 'business_owner' && !companyName.trim()) {
+      alert('Please enter your company name');
+      return;
+    }
+
+    if (accountType === 'employee' && !workspaceInviteCode.trim()) {
+      alert('Please enter your company invite code');
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert('Passwords do not match');
     } else {
-      const userData = { name, email, password, accountType };
+      const userData = { name, email, password, accountType, companyName, workspaceInviteCode };
       dispatch(register(userData));
     }
   };
@@ -159,6 +178,55 @@ const Register = () => {
                     />
                   </div>
                 </div>
+
+                {accountType === 'business_owner' && (
+                  <div>
+                    <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Company Name
+                    </label>
+                    <div className="mt-1 relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Briefcase className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        id="companyName"
+                        name="companyName"
+                        type="text"
+                        required
+                        value={companyName}
+                        onChange={onChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all sm:text-sm"
+                        placeholder="Your company name"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {accountType === 'employee' && (
+                  <div>
+                    <label htmlFor="workspaceInviteCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Company Invite Code
+                    </label>
+                    <div className="mt-1 relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Users className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        id="workspaceInviteCode"
+                        name="workspaceInviteCode"
+                        type="text"
+                        required
+                        value={workspaceInviteCode}
+                        onChange={onChange}
+                        className="block w-full pl-10 pr-3 py-2 uppercase border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all sm:text-sm"
+                        placeholder="Enter company invite code"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Ask your company admin for the workspace invite code before creating your employee account.
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">

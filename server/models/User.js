@@ -23,8 +23,18 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'superadmin'],
     default: 'user',
+  },
+  workspace: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Workspace',
+    default: null,
+    index: true,
+  },
+  needsPasswordReset: {
+    type: Boolean,
+    default: false,
   },
   accountType: {
     type: String,

@@ -208,14 +208,6 @@ Charge:
 - API for third-party integration
 - Advanced analytics dashboard
 
-## Demo System
-- Demo login account
-- Sample data (fake users, tracking)
-
-Status:
-- Recommended for sales demos and investor presentations.
-- Not yet formalized in the current codebase.
-
 ## Roles and Access
 - `user`: standard application access
 - `admin`: can access admin-only user listing endpoints and frontend admin page

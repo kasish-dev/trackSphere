@@ -31,10 +31,11 @@ const Layout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const isAdmin = user?.user?.role === 'admin';
+  const isSuperadmin = user?.user?.role === 'superadmin';
   const isBusinessOwner = user?.user?.accountType === 'business_owner';
   const subscriptionTier = user?.user?.subscriptionTier;
-  const canAccessAnalytics = isAdmin || ['BUSINESS', 'ENTERPRISE'].includes(subscriptionTier);
-  const canManageBilling = isAdmin || isBusinessOwner || !['BUSINESS', 'ENTERPRISE'].includes(subscriptionTier);
+  const canAccessAnalytics = isAdmin || isSuperadmin || ['BUSINESS', 'ENTERPRISE'].includes(subscriptionTier);
+  const canManageBilling = isAdmin || isSuperadmin || isBusinessOwner || !['BUSINESS', 'ENTERPRISE'].includes(subscriptionTier);
 
   useEffect(() => {
     if (user) {
@@ -193,19 +194,19 @@ const Layout = () => {
               </Link>
           ))}
           
-          {isAdmin && (
+          {(isAdmin || isSuperadmin) && (
             <Link
-              to="/admin"
+              to={isSuperadmin ? '/superadmin' : '/admin'}
               className={`flex items-center px-4 py-3 rounded-xl transition mt-10
                 ${
-                  location.pathname === '/admin'
+                  location.pathname.startsWith(isSuperadmin ? '/superadmin' : '/admin')
                     ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-100 dark:border-red-800'
                     : 'text-gray-500 hover:bg-red-50/50 dark:hover:bg-red-900/10 hover:text-red-600 border border-transparent'
                 }
               `}
             >
               <Shield className="mr-3 h-5 w-5 shrink-0" />
-              {isSidebarOpen && <span className="font-bold">Admin Panel</span>}
+              {isSidebarOpen && <span className="font-bold">{isSuperadmin ? 'Superadmin Panel' : 'Admin Panel'}</span>}
             </Link>
           )}
         </nav>

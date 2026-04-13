@@ -7,6 +7,8 @@ const SafetyAlert = require('../models/SafetyAlert');
 const PaymentRecord = require('../models/PaymentRecord');
 const WorkSession = require('../models/WorkSession');
 const { applyTrialState, serializeUser, startFreeTrial } = require('../utils/subscription');
+const Workspace = require('../models/Workspace');
+const { ensureWorkspaceForAdminUser, findWorkspaceByInviteCode } = require('../utils/workspace');
 
 const sanitizeEmergencyContacts = (contacts = []) => {
   return contacts
@@ -18,6 +20,8 @@ const sanitizeEmergencyContacts = (contacts = []) => {
     }))
     .filter((contact) => contact.name && (contact.phone || contact.email));
 };
+
+const generateWorkspaceInviteCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -37,7 +41,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, email, password, accountType } = req.body;
+    const { name, email, password, accountType, companyName, workspaceInviteCode } = req.body;
     const safeAccountType = ['individual', 'business_owner', 'employee'].includes(accountType)
       ? accountType
       : null;
@@ -46,17 +50,33 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Please choose an account type' });
     }
 
+    let workspace = null;
+    if (safeAccountType === 'employee') {
+      workspace = await findWorkspaceByInviteCode(workspaceInviteCode);
+      if (!workspace) {
+        return res.status(400).json({ success: false, error: 'Please enter a valid company invite code' });
+      }
+    }
+
     const starterTier = safeAccountType === 'business_owner' ? 'BUSINESS' : 'PRO';
+    const role = safeAccountType === 'business_owner' ? 'admin' : 'user';
 
     // Create user
     const user = startFreeTrial(new User({
       name,
       email,
       password,
+      role,
+      workspace: workspace?._id || null,
       accountType: safeAccountType,
     }), starterTier);
 
     await user.save();
+
+    if (role === 'admin') {
+      await ensureWorkspaceForAdminUser(user, companyName);
+      await user.populate('workspace', 'name slug owner');
+    }
 
     sendTokenResponse(user, 200, res);
   } catch (err) {
@@ -91,7 +111,7 @@ exports.login = async (req, res) => {
     }
 
     // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password').populate('workspace', 'name slug owner');
 
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
@@ -106,6 +126,10 @@ exports.login = async (req, res) => {
 
     const { changed } = applyTrialState(user);
     user.lastActiveAt = new Date();
+    if (user.role === 'admin' && !user.workspace) {
+      await ensureWorkspaceForAdminUser(user);
+      await user.populate('workspace', 'name slug owner');
+    }
     if (changed || user.isModified()) {
       await user.save();
     }
@@ -135,7 +159,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('workspace', 'name slug owner');
 
     res.status(200).json({
       success: true,
@@ -207,7 +231,7 @@ exports.updateProfile = async (req, res) => {
 // @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find({}).sort('-createdAt');
+    const users = await User.find({}).populate('workspace', 'name slug').sort('-createdAt');
 
     res.status(200).json({
       success: true,
@@ -238,8 +262,13 @@ exports.promoteUserToAdmin = async (req, res) => {
     if (!user.accountType || user.accountType === 'individual') {
       user.accountType = 'business_owner';
     }
+    if (!['BUSINESS', 'ENTERPRISE'].includes(user.subscriptionTier)) {
+      user.subscriptionTier = 'BUSINESS';
+    }
 
     await user.save();
+    await ensureWorkspaceForAdminUser(user);
+    await user.populate('workspace', 'name slug owner');
 
     res.status(200).json({
       success: true,
@@ -353,6 +382,317 @@ exports.getAdminDashboard = async (req, res) => {
         users: users.map(serializeUser),
       },
     });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Get workspace admin dashboard stats
+// @route   GET /api/auth/workspace-dashboard
+// @access  Private/Admin
+exports.getWorkspaceDashboard = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, error: 'Workspace not found for this admin account' });
+    }
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ success: false, error: 'Workspace not found' });
+    }
+
+    const users = await User.find({ workspace: workspaceId }).sort('-createdAt');
+    const userIds = users.map((user) => user._id);
+    const groups = await Group.find({ workspace: workspaceId }).sort('-createdAt');
+    const groupIds = groups.map((group) => group._id);
+    const [payments, workSessions, unreadAlerts, safetyAlerts] = await Promise.all([
+      PaymentRecord.find({ user: { $in: userIds } }).sort({ paidAt: -1 }),
+      WorkSession.find({ user: { $in: userIds } }).populate('user', 'name email').sort({ checkInAt: -1 }),
+      Notification.countDocuments({ userId: { $in: userIds }, isRead: false }),
+      SafetyAlert.countDocuments({ group: { $in: groupIds } }),
+    ]);
+
+    const activeSince = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const activeUsers = users.filter((user) => user.lastActiveAt && user.lastActiveAt >= activeSince).length;
+    const adminCount = users.filter((user) => user.role === 'admin').length;
+    const employeeCount = users.filter((user) => user.role === 'user').length;
+    const businessUsers = users.filter((user) => user.subscriptionTier === 'BUSINESS').length;
+    const enterpriseUsers = users.filter((user) => user.subscriptionTier === 'ENTERPRISE').length;
+    const proUsers = users.filter((user) => user.subscriptionTier === 'PRO').length;
+    const trialUsers = users.filter((user) => user.trialStatus === 'active').length;
+
+    const paidPayments = payments.filter((payment) => payment.status === 'paid');
+    const failedPayments = payments.filter((payment) => payment.status === 'failed');
+    const totalRevenueCollected = paidPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const todaysSessions = workSessions.filter((session) => session.dateKey === todayKey);
+    const openSessions = todaysSessions.filter((session) => session.status === 'OPEN');
+    const closedSessions = todaysSessions.filter((session) => session.status === 'CLOSED');
+
+    const attendanceTotals = todaysSessions.reduce((acc, session) => {
+      const endTime = session.checkOutAt || session.lastSeenAt || session.checkInAt;
+      const durationMinutes = Math.max(
+        0,
+        Math.round((new Date(endTime).getTime() - new Date(session.checkInAt).getTime()) / 60000)
+      );
+
+      acc.workMinutes += durationMinutes;
+      acc.distanceKm += session.totalDistanceKm || 0;
+      acc.pings += session.totalPings || 0;
+      return acc;
+    }, { workMinutes: 0, distanceKm: 0, pings: 0 });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workspace: {
+          id: workspace._id,
+          name: workspace.name,
+          slug: workspace.slug,
+          inviteCode: workspace.inviteCode,
+        },
+        stats: {
+          totalUsers: users.length,
+          activeUsers,
+          totalGroups: groups.length,
+          admins: adminCount,
+          employees: employeeCount,
+          proUsers,
+          businessUsers,
+          enterpriseUsers,
+          trialUsers,
+          unreadAlerts,
+          safetyAlerts,
+          totalRevenueCollected,
+          successfulPayments: paidPayments.length,
+          failedPayments: failedPayments.length,
+        },
+        attendance: {
+          todayDateKey: todayKey,
+          totalSessions: todaysSessions.length,
+          openSessions: openSessions.length,
+          closedSessions: closedSessions.length,
+          totalWorkHours: Number((attendanceTotals.workMinutes / 60).toFixed(2)),
+          avgWorkHours: todaysSessions.length ? Number(((attendanceTotals.workMinutes / todaysSessions.length) / 60).toFixed(2)) : 0,
+          totalDistanceKm: Number(attendanceTotals.distanceKm.toFixed(2)),
+          totalPings: attendanceTotals.pings,
+          sessions: todaysSessions.slice(0, 10).map((session) => ({
+            id: session._id,
+            userName: session.user?.name || 'Unknown user',
+            email: session.user?.email || '',
+            dateKey: session.dateKey,
+            status: session.status,
+            checkInAt: session.checkInAt,
+            checkOutAt: session.checkOutAt,
+            workHours: Number((Math.max(
+              0,
+              ((new Date(session.checkOutAt || session.lastSeenAt || session.checkInAt).getTime() - new Date(session.checkInAt).getTime()) / (1000 * 60 * 60))
+            )).toFixed(2)),
+            totalDistanceKm: Number((session.totalDistanceKm || 0).toFixed(2)),
+            totalPings: session.totalPings || 0,
+          })),
+        },
+        users: users.map(serializeUser),
+      },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Regenerate workspace invite code
+// @route   POST /api/auth/workspace/invite-code/regenerate
+// @access  Private/Admin
+exports.regenerateWorkspaceInviteCode = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId);
+
+    if (!workspace) {
+      return res.status(404).json({ success: false, error: 'Workspace not found' });
+    }
+
+    let inviteCode = generateWorkspaceInviteCode();
+    while (await Workspace.exists({ inviteCode, _id: { $ne: workspace._id } })) {
+      inviteCode = generateWorkspaceInviteCode();
+    }
+
+    workspace.inviteCode = inviteCode;
+    await workspace.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: workspace._id,
+        inviteCode: workspace.inviteCode,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Create employee inside workspace
+// @route   POST /api/auth/workspace/employees
+// @access  Private/Admin
+exports.createWorkspaceEmployee = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId);
+
+    if (!workspace) {
+      return res.status(404).json({ success: false, error: 'Workspace not found' });
+    }
+
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required' });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'A user with this email already exists' });
+    }
+
+    const employee = startFreeTrial(new User({
+      name,
+      email,
+      password,
+      role: 'user',
+      accountType: 'employee',
+      workspace: workspace._id,
+      needsPasswordReset: true,
+    }), 'PRO');
+
+    await employee.save();
+
+    res.status(201).json({
+      success: true,
+      data: serializeUser(employee),
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Send invite email to employee
+// @route   POST /api/auth/workspace/invite-email
+// @access  Private/Admin
+exports.inviteWorkspaceEmployeeByEmail = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId);
+
+    if (!workspace) {
+      return res.status(404).json({ success: false, error: 'Workspace not found' });
+    }
+
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    const sendEmail = require('../utils/sendEmail');
+    // the user wants the frontend url for signup, we should look what `req.get('host')` is on backend, usually backend is 5000, frontend is 5173 or the real domain.
+    // we should use a generic url or ask the user to use the env FRONTEND_URL, fallback to referer or something.
+    const origin = req.headers.origin || `http://${req.get('host')}`;
+    const signupUrl = `${origin}/register`;
+
+    const message = `You have been invited to join ${workspace.name} on TrackSphere as an employee.\n\nUse this company invite code during signup: ${workspace.inviteCode}\n\nSignup page: ${signupUrl}`;
+
+    await sendEmail({
+      email,
+      subject: `Join ${workspace.name} on TrackSphere`,
+      message,
+    });
+
+    res.status(200).json({ success: true, message: 'Email sent' });
+  } catch (err) {
+    console.error('Email send error:', err);
+    res.status(500).json({ success: false, error: 'Email could not be sent' });
+  }
+};
+
+// @desc    Update employee
+// @route   PATCH /api/auth/workspace/employees/:id
+// @access  Private/Admin
+exports.updateWorkspaceEmployee = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+    const userToUpdate = await User.findById(req.params.id);
+
+    if (!userToUpdate || String(userToUpdate.workspace) !== String(workspaceId)) {
+      return res.status(404).json({ success: false, error: 'User not found in your workspace' });
+    }
+
+    if (req.body.name) userToUpdate.name = req.body.name;
+    if (req.body.role && ['user', 'admin'].includes(req.body.role)) {
+      if (String(userToUpdate._id) === String(req.user.id) && req.body.role !== 'admin') {
+         return res.status(400).json({ success: false, error: 'Cannot demote yourself' });
+      }
+      userToUpdate.role = req.body.role;
+    }
+
+    await userToUpdate.save();
+
+    res.status(200).json({ success: true, data: serializeUser(userToUpdate) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Delete employee
+// @route   DELETE /api/auth/workspace/employees/:id
+// @access  Private/Admin
+exports.deleteWorkspaceEmployee = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+    const userToDelete = await User.findById(req.params.id);
+
+    if (!userToDelete || String(userToDelete.workspace) !== String(workspaceId)) {
+      return res.status(404).json({ success: false, error: 'User not found in your workspace' });
+    }
+
+    if (String(userToDelete._id) === String(req.user.id)) {
+      return res.status(400).json({ success: false, error: 'Cannot delete yourself' });
+    }
+
+    await userToDelete.deleteOne();
+
+    res.status(200).json({ success: true, data: {} });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Force Reset Password for First Login
+// @route   POST /api/auth/force-reset-password
+// @access  Private
+exports.forceResetPassword = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (!user.needsPasswordReset) {
+      return res.status(400).json({ success: false, error: 'Password reset not required' });
+    }
+
+    user.password = newPassword;
+    user.needsPasswordReset = false;
+    await user.save();
+
+    res.status(200).json({ success: true, data: serializeUser(user) });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }

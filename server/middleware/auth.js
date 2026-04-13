@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { applyTrialState } = require('../utils/subscription');
+const { ensureWorkspaceForAdminUser } = require('../utils/workspace');
 
 // Protect routes
 exports.protect = async (req, res, next) => {
@@ -23,9 +24,14 @@ exports.protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).populate('workspace', 'name slug owner');
     if (!user) {
       return res.status(401).json({ success: false, error: 'Not authorized to access this route' });
+    }
+
+    if (user.role === 'admin' && !user.workspace) {
+      await ensureWorkspaceForAdminUser(user);
+      await user.populate('workspace', 'name slug owner');
     }
 
     const { changed } = applyTrialState(user);
@@ -78,7 +84,7 @@ exports.authorizeTier = (...tiers) => {
 // BUSINESS/ENTERPRISE workspaces so employees cannot manage shared plans.
 exports.authorizeBillingAccess = () => {
   return (req, res, next) => {
-    const isWorkspaceEmployee = req.user.role !== 'admin'
+    const isWorkspaceEmployee = !['admin', 'superadmin'].includes(req.user.role)
       && req.user.accountType !== 'business_owner'
       && ['BUSINESS', 'ENTERPRISE'].includes(req.user.subscriptionTier);
 

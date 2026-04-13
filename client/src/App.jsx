@@ -15,8 +15,12 @@ import Success from './pages/Success';
 import Analytics from './pages/Analytics';
 import PublicSOS from './pages/PublicSOS';
 import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
+import WorkspaceAdmin from './pages/WorkspaceAdmin';
 import Billing from './pages/Billing';
 import Layout from './layouts/Layout';
+import AdminLayout from './layouts/AdminLayout';
+import ResetInitialPassword from './pages/ResetInitialPassword';
 import { validateSession } from './redux/authSlice';
 
 const SessionLoadingScreen = () => (
@@ -49,7 +53,11 @@ const HomeRoute = () => {
     return <SessionLoadingScreen />;
   }
 
-  return user ? <Navigate to="/dashboard" replace /> : <Home />;
+  if (user) {
+    return <Navigate to={user?.user?.role === 'superadmin' ? '/superadmin' : user?.user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+
+  return <Home />;
 };
 
 const PublicOnlyRoute = ({ children }) => {
@@ -59,7 +67,33 @@ const PublicOnlyRoute = ({ children }) => {
     return <SessionLoadingScreen />;
   }
 
-  return user ? <Navigate to="/dashboard" replace /> : children;
+  if (user) {
+    return <Navigate to={user?.user?.role === 'superadmin' ? '/superadmin' : user?.user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+
+  return children;
+};
+
+const AdminLoginRoute = ({ children }) => {
+  const { user, sessionChecked } = useSelector((state) => state.auth);
+
+  if (user?.token && !sessionChecked) {
+    return <SessionLoadingScreen />;
+  }
+
+  if (user?.user?.role === 'superadmin') {
+    return <Navigate to="/superadmin" replace />;
+  }
+
+  if (user?.user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 };
 
 // Protected Route Component
@@ -72,6 +106,28 @@ const ProtectedRoute = () => {
 
   if (!sessionChecked) {
     return <SessionLoadingScreen />;
+  }
+
+  if (user?.user?.needsPasswordReset) {
+    return <Navigate to="/reset-initial-password" replace />;
+  }
+
+  return <Outlet />;
+};
+
+const InitialPasswordResetRoute = () => {
+  const { user, sessionChecked } = useSelector((state) => state.auth);
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!sessionChecked) {
+    return <SessionLoadingScreen />;
+  }
+
+  if (!user?.user?.needsPasswordReset) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;
@@ -87,10 +143,20 @@ const AdminOnlyRoute = ({ children }) => {
   return children;
 };
 
+const SuperAdminOnlyRoute = ({ children }) => {
+  const { user } = useSelector((state) => state.auth);
+
+  if (user?.user?.role !== 'superadmin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
 const BusinessOnlyRoute = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
   const tier = user?.user?.subscriptionTier;
-  const isAllowed = user?.user?.role === 'admin' || tier === 'BUSINESS' || tier === 'ENTERPRISE';
+  const isAllowed = ['admin', 'superadmin'].includes(user?.user?.role) || tier === 'BUSINESS' || tier === 'ENTERPRISE';
 
   return isAllowed ? children : (
     <AccessNotice
@@ -105,7 +171,7 @@ const BusinessOnlyRoute = ({ children }) => {
 const BillingManagerRoute = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
   const tier = user?.user?.subscriptionTier;
-  const isWorkspaceEmployee = user?.user?.role !== 'admin'
+  const isWorkspaceEmployee = !['admin', 'superadmin'].includes(user?.user?.role)
     && user?.user?.accountType !== 'business_owner'
     && (tier === 'BUSINESS' || tier === 'ENTERPRISE');
 
@@ -140,6 +206,14 @@ function App() {
             }
           />
           <Route
+            path="/admin/login"
+            element={
+              <AdminLoginRoute>
+                <AdminLogin />
+              </AdminLoginRoute>
+            }
+          />
+          <Route
             path="/register"
             element={
               <PublicOnlyRoute>
@@ -148,6 +222,14 @@ function App() {
             }
           />
           <Route path="/sos/:token" element={<PublicSOS />} />
+          <Route
+            path="/reset-initial-password"
+            element={
+              <InitialPasswordResetRoute>
+                <ResetInitialPassword />
+              </InitialPasswordResetRoute>
+            }
+          />
           
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
@@ -182,14 +264,36 @@ function App() {
                 }
               />
               <Route path="/settings" element={<Settings />} />
-              <Route
-                path="/admin"
-                element={
-                  <AdminOnlyRoute>
-                    <Admin />
-                  </AdminOnlyRoute>
-                }
-              />
+            </Route>
+            <Route
+              path="/admin"
+              element={
+                <AdminOnlyRoute>
+                  <AdminLayout
+                    basePath="/admin"
+                    title="Workspace Admin Panel"
+                    subtitle="Manage only your company workspace, employees, groups, attendance, and reports."
+                    showAnalytics={false}
+                  />
+                </AdminOnlyRoute>
+              }
+            >
+              <Route index element={<WorkspaceAdmin />} />
+            </Route>
+            <Route
+              path="/superadmin"
+              element={
+                <SuperAdminOnlyRoute>
+                  <AdminLayout
+                    basePath="/superadmin"
+                    title="Superadmin Control Panel"
+                    subtitle="Platform-wide visibility across all workspaces, customers, billing signals, and global operations."
+                    showAnalytics={false}
+                  />
+                </SuperAdminOnlyRoute>
+              }
+            >
+              <Route index element={<Admin />} />
             </Route>
             <Route path="/success" element={<Success />} />
           </Route>

@@ -11,6 +11,12 @@ const groupSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  workspace: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Workspace',
+    default: null,
+    index: true,
+  },
   members: [
     {
       type: mongoose.Schema.ObjectId,

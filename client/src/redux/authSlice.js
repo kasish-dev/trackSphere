@@ -34,7 +34,7 @@ export const login = createAsyncThunk('auth/login', async (userData, thunkAPI) =
       return thunkAPI.rejectWithValue('Too many attempts. Please try again in 15 minutes.');
     }
     if (error.response?.status === 401) {
-      return thunkAPI.rejectWithValue('Invalid email or password. If you are using demo access, run `npm run seed:demo` in `server/` first.');
+      return thunkAPI.rejectWithValue('Invalid email or password.');
     }
     const message = error.response?.data?.errors 
       ? error.response.data.errors.map(err => err.msg).join('. ')

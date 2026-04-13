@@ -1,12 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { ensureWorkspaceForAdminUser } = require('../utils/workspace');
 
 const email = process.argv[2];
 
 if (!email) {
-  console.error('Usage: node scripts/promoteUserToAdmin.js <email>');
+  console.error('Usage: node scripts/promoteUserToSuperadmin.js <email>');
   process.exit(1);
 }
 
@@ -21,18 +20,15 @@ const run = async () => {
       process.exit(1);
     }
 
-    user.role = 'admin';
-    if (!user.accountType || user.accountType === 'individual') {
-      user.accountType = 'business_owner';
-    }
+    user.role = 'superadmin';
+    user.accountType = 'business_owner';
     if (!user.subscriptionTier || user.subscriptionTier === 'FREE') {
       user.subscriptionTier = 'ENTERPRISE';
     }
 
     await user.save();
-    await ensureWorkspaceForAdminUser(user);
 
-    console.log(`Promoted ${user.email} to admin`);
+    console.log(`Promoted ${user.email} to superadmin`);
     console.log(`role=${user.role}`);
     console.log(`accountType=${user.accountType}`);
     console.log(`subscriptionTier=${user.subscriptionTier}`);

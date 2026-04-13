@@ -3,6 +3,18 @@ const Geofence = require('../models/Geofence');
 const User = require('../models/User');
 const { applyTrialState } = require('../utils/subscription');
 
+const canManageWorkspaceGroup = (req, group) => {
+  if (req.user.role === 'superadmin') {
+    return true;
+  }
+
+  if (req.user.role === 'admin') {
+    return String(group.workspace || '') === String(req.user.workspace || '');
+  }
+
+  return group.members.some((memberId) => String(memberId) === String(req.user.id));
+};
+
 // @desc    Create group
 // @route   POST /api/groups
 // @access  Private
@@ -18,6 +30,7 @@ exports.createGroup = async (req, res) => {
 
     req.body.owner = req.user.id;
     req.body.members = [req.user.id];
+    req.body.workspace = req.user.workspace || null;
 
 
     const group = await Group.create(req.body);
@@ -36,7 +49,12 @@ exports.createGroup = async (req, res) => {
 // @access  Private
 exports.getGroups = async (req, res) => {
   try {
-    const groups = await Group.find({ members: req.user.id }).populate('owner members', 'name email');
+    const query = req.user.role === 'superadmin'
+      ? {}
+      : req.user.role === 'admin'
+        ? { workspace: req.user.workspace }
+        : { members: req.user.id };
+    const groups = await Group.find(query).populate('owner members', 'name email workspace');
 
     res.status(200).json({
       success: true,
@@ -59,6 +77,10 @@ exports.joinGroup = async (req, res) => {
 
     if (!group) {
       return res.status(404).json({ success: false, error: 'Invalid invite code' });
+    }
+
+    if (req.user.role !== 'superadmin' && group.workspace && req.user.workspace && String(group.workspace) !== String(req.user.workspace)) {
+      return res.status(403).json({ success: false, error: 'You cannot join a group from another workspace' });
     }
 
     if (group.members.includes(req.user.id)) {
@@ -90,6 +112,11 @@ exports.joinGroup = async (req, res) => {
       });
     }
 
+    if (!user.workspace && group.workspace) {
+      user.workspace = group.workspace;
+      await user.save();
+    }
+
     group.members.push(req.user.id);
     await group.save();
 
@@ -107,6 +134,11 @@ exports.joinGroup = async (req, res) => {
 // @access  Private
 exports.createGeofence = async (req, res) => {
   try {
+    const group = await Group.findById(req.params.groupId);
+    if (!group || !canManageWorkspaceGroup(req, group)) {
+      return res.status(403).json({ success: false, error: 'User not authorized for this group' });
+    }
+
     req.body.groupId = req.params.groupId;
     req.body.createdBy = req.user.id;
 
@@ -132,6 +164,11 @@ exports.createGeofence = async (req, res) => {
 // @access  Private
 exports.getGroupGeofences = async (req, res) => {
   try {
+    const group = await Group.findById(req.params.groupId);
+    if (!group || !canManageWorkspaceGroup(req, group)) {
+      return res.status(403).json({ success: false, error: 'User not authorized for this group' });
+    }
+
     const geofences = await Geofence.find({ groupId: req.params.groupId });
 
     res.status(200).json({
@@ -154,8 +191,12 @@ exports.deleteGroup = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
-    // Check if user is owner
-    if (group.owner.toString() !== req.user.id) {
+    // Check if user is owner or workspace admin
+    const isOwner = group.owner.toString() === req.user.id;
+    const isWorkspaceAdmin = req.user.role === 'superadmin'
+      || (req.user.role === 'admin' && String(group.workspace || '') === String(req.user.workspace || ''));
+
+    if (!isOwner && !isWorkspaceAdmin) {
       return res.status(401).json({ success: false, error: 'User not authorized to delete this group' });
     }
 
