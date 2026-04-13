@@ -14,8 +14,16 @@ connectDB();
 
 const app = express();
 const server = http.createServer(app);
-const frontendUrl = process.env.FRONTEND_URL || '*';
-const allowedOrigins = frontendUrl === '*' ? ['*'] : [frontendUrl, frontendUrl.replace(/\/$/, ""), 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
+const rawFrontendUrl = process.env.FRONTEND_URL || '*';
+const frontendUrls = rawFrontendUrl.split(',').map(url => url.trim());
+const allowedOrigins = frontendUrls.includes('*') ? ['*'] : [
+  ...frontendUrls,
+  ...frontendUrls.map(url => url.replace(/\/$/, "")),
+  'http://localhost:5173', 
+  'http://127.0.0.1:5173', 
+  'http://localhost:5174', 
+  'http://127.0.0.1:5174'
+];
 
 // 1. CORS Middleware (Must be before any routes or other middleware like helmet/limiter)
 app.use(cors({
