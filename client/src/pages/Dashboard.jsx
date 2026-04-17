@@ -63,6 +63,11 @@ const AutoZoomBounds = ({ myLocation, membersLocations, triggerZoom }) => {
 };
 
 const DASHBOARD_META = {
+  superadmin: {
+    badge: 'Superadmin',
+    title: 'Platform Superadmin Dashboard',
+    subtitle: 'Monitor the product, jump into system analytics, and manage platform-wide operations and customers.',
+  },
   admin: {
     badge: 'Admin',
     title: 'Platform Admin Dashboard',
@@ -132,7 +137,7 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const latestLocation = useRef(null);
   const accountType = user?.user?.accountType || 'individual';
-  const dashboardRoleKey = user?.user?.role === 'superadmin' ? 'admin' : accountType;
+  const dashboardRoleKey = user?.user?.role === 'superadmin' ? 'superadmin' : accountType;
   const dashboardMeta = DASHBOARD_META[dashboardRoleKey] || DASHBOARD_META.individual;
   const activeGroup = groups?.[activeGroupIndex] || groups?.[0] || null;
   const onlineMembersCount = Object.keys(membersLocations).length;
@@ -429,7 +434,7 @@ const Dashboard = () => {
       timestamp: activeSOS.timestamp,
     });
     const shareText = buildSosShareText({
-      userName: user?.user?.name || 'A TrackSphere user',
+      userName: user?.user?.name || 'A Ksynq user',
       lat: activeSOS.lat,
       lng: activeSOS.lng,
       shareUrl,
@@ -438,7 +443,7 @@ const Dashboard = () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'TrackSphere SOS Alert',
+          title: 'Ksynq SOS Alert',
           text: shareText,
           url: shareUrl,
         });
@@ -495,8 +500,8 @@ const Dashboard = () => {
     const group = groups[0]; // Share the first group by default
     
     const shareData = {
-      title: 'Join my TrackSphere group!',
-      text: `Join my group "${group.name}" on TrackSphere using this invite code: ${group.inviteCode}`,
+      title: 'Join my Ksynq group!',
+      text: `Join my group "${group.name}" on Ksynq using this invite code: ${group.inviteCode}`,
       url: window.location.origin
     };
 
@@ -524,13 +529,14 @@ const Dashboard = () => {
   };
 
   const renderRoleSidebar = () => {
-    if (dashboardRoleKey === 'admin') {
+    if (dashboardRoleKey === 'admin' || dashboardRoleKey === 'superadmin') {
+      const isSuperadmin = user?.user?.role === 'superadmin';
       return (
         <>
           <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/40 dark:border-gray-700/50 p-5">
             <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
               <Shield size={14} className="text-primary-600" />
-              Admin Controls
+              {isSuperadmin ? 'Superadmin Controls' : 'Admin Controls'}
             </h3>
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="rounded-xl bg-primary-50 dark:bg-primary-900/20 p-3">
@@ -544,7 +550,7 @@ const Dashboard = () => {
             </div>
             <div className="space-y-3">
               <button onClick={() => navigate(user?.user?.role === 'superadmin' ? '/superadmin' : '/admin')} className="w-full rounded-xl bg-primary-600 text-white py-2 text-xs font-black uppercase tracking-widest hover:bg-primary-700 transition">
-                Open Admin Panel
+                {isSuperadmin ? 'Open Superadmin Panel' : 'Open Admin Panel'}
               </button>
               <button onClick={() => navigate('/analytics')} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                 View Analytics

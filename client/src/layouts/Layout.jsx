@@ -18,6 +18,7 @@ import {
   Shield,
   Receipt
 } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchNotifications, addLocalNotification } from '../redux/notificationSlice';
 import socket from '../services/socket';
@@ -54,7 +55,7 @@ const Layout = () => {
 
         if (user?.user?.preferences?.pushNotifications !== false) {
           showBrowserNotification({
-            title: 'TrackSphere SOS Alert',
+            title: 'Ksynq SOS Alert',
             body: `${data.userName} triggered an SOS.`,
             tag: `sos-${data.userId}`,
             data: { path: '/notifications' }
@@ -74,7 +75,7 @@ const Layout = () => {
 
         if (user?.user?.preferences?.pushNotifications !== false) {
           showBrowserNotification({
-            title: 'TrackSphere Geofence Alert',
+            title: 'Ksynq Geofence Alert',
             body: `${alert.userName} ${alert.type === 'exit' ? 'left' : 'entered'} ${alert.fenceName}.`,
             tag: `geofence-${alert.userId}-${alert.fenceName}`,
             data: { path: '/notifications' }
@@ -94,7 +95,7 @@ const Layout = () => {
 
         if (user?.user?.preferences?.pushNotifications !== false) {
           showBrowserNotification({
-            title: 'TrackSphere Group Update',
+            title: 'Ksynq Group Update',
             body: `${alert.userName} joined the group.`,
             tag: `group-join-${alert.userName}-${alert.timestamp}`,
             data: { path: '/notifications' }
@@ -114,7 +115,7 @@ const Layout = () => {
 
         if (user?.user?.preferences?.pushNotifications !== false) {
           showBrowserNotification({
-            title: 'TrackSphere Safety Alert',
+            title: 'Ksynq Safety Alert',
             body: alert.message,
             tag: `safety-${alert.userId}-${alert.type || 'alert'}`,
             data: { path: '/notifications' }
@@ -162,10 +163,10 @@ const Layout = () => {
         className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-r border-white/40 dark:border-gray-700/50 flex flex-col z-[100] relative"
       >
         <div className="p-6 flex items-center gap-3">
-          <div className="bg-primary-600 p-2 rounded-lg">
-            <MapIcon className="text-white" size={24} />
+          <div className="p-2 rounded-lg bg-transparent">
+            <img src="/favicon.svg" alt="Ksynq logo" className="h-6 w-6 object-contain" />
           </div>
-          {isSidebarOpen && <span className="font-bold text-xl tracking-tight">TrackSphere</span>}
+          {isSidebarOpen && <span className="font-bold text-xl tracking-tight">Ksynq</span>}
         </div>
 
         <nav className="flex-1 mt-6 px-4 space-y-2">
@@ -206,7 +207,7 @@ const Layout = () => {
               `}
             >
               <Shield className="mr-3 h-5 w-5 shrink-0" />
-              {isSidebarOpen && <span className="font-bold">{isSuperadmin ? 'Superadmin Panel' : 'Admin Panel'}</span>}
+              {isSidebarOpen && <span className="font-bold">{isSuperadmin ? 'Ksynq Superadmin Panel' : 'Ksynq Admin Panel'}</span>}
             </Link>
           )}
         </nav>

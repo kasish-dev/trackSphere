@@ -271,7 +271,7 @@ function App() {
                 <AdminOnlyRoute>
                   <AdminLayout
                     basePath="/admin"
-                    title="Workspace Admin Panel"
+                    title="Ksynq Workspace Admin Panel"
                     subtitle="Manage only your company workspace, employees, groups, attendance, and reports."
                     showAnalytics={false}
                   />
@@ -286,7 +286,7 @@ function App() {
                 <SuperAdminOnlyRoute>
                   <AdminLayout
                     basePath="/superadmin"
-                    title="Superadmin Control Panel"
+                    title="Ksynq Superadmin Control Panel"
                     subtitle="Platform-wide visibility across all workspaces, customers, billing signals, and global operations."
                     showAnalytics={false}
                   />

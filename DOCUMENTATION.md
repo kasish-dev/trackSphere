@@ -1,4 +1,4 @@
-# TrackSphere Documentation
+# Ksynq Documentation
 
 ## Final Summary
 Start with these 5 highest-impact business features:
@@ -10,7 +10,7 @@ Start with these 5 highest-impact business features:
 - Clear Pricing Page
 
 ## Product Overview
-TrackSphere is a full-stack real-time tracking platform for teams, families, field staff, and fleet-style group coordination. It combines live location sharing, group management, geofencing, chat, SOS alerts, notification workflows, and subscription-based feature gating in one web application.
+Ksynq is a full-stack real-time tracking platform for teams, families, field staff, and fleet-style group coordination. It combines live location sharing, group management, geofencing, chat, SOS alerts, notification workflows, and subscription-based feature gating in one web application.
 
 The repository is split into:
 
@@ -167,7 +167,7 @@ Status:
 ## White Label Solution
 - Custom logo
 - Custom app name
-- Custom domain (for example `companyname.tracksphere.com`)
+- Custom domain (for example `companyname.ksynq.com`)
 - Separate database (optional)
 
 Charge:
@@ -194,7 +194,7 @@ Charge:
 ### 4. Fleet Tracking
 - Monitor vehicles & routes
 
-## Why TrackSphere?
+## Why Ksynq?
 - Real-time + offline sync
 - Built-in SOS system
 - Group-based tracking (unique)
@@ -244,8 +244,8 @@ JWT bearer authentication protects private routes. Role-based authorization is e
 | Plan | Tier | Price | Main Limits |
 | --- | --- | --- | --- |
 | Starter | `FREE` | INR 0 | 1 group, small group capacity, short history |
-| TrackSphere PRO | `PRO` | INR 499/month | up to 5 members, 30-day history |
-| TrackSphere Business | `BUSINESS` | INR 999/month | up to 15 members, 30-day history |
+| Ksynq PRO | `PRO` | INR 499/month | up to 5 members, 30-day history |
+| Ksynq Business | `BUSINESS` | INR 999/month | up to 15 members, 30-day history |
 
 The codebase also recognizes `ENTERPRISE` for higher limits, although no dedicated purchase flow is defined in the current plan config file.
 

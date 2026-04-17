@@ -1,6 +1,6 @@
-# TrackSphere
+# Ksynq
 
-TrackSphere is a real-time team and safety tracking platform built with React, Vite, Express, Socket.IO, and MongoDB. It supports live map tracking, groups, chat, geofences, SOS workflows, notifications, analytics, and subscription upgrades.
+Ksynq is a real-time team and safety tracking platform built with React, Vite, Express, Socket.IO, and MongoDB. It supports live map tracking, groups, chat, geofences, SOS workflows, notifications, analytics, and subscription upgrades.
 
 ## Repository Structure
 

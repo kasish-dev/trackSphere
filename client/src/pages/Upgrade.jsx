@@ -310,7 +310,7 @@ const Upgrade = () => {
           <Building2 size={32} />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">TrackSphere For Business</h3>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Ksynq For Business</h3>
           <p className="text-sm text-gray-500 mb-4 italic">Need business setup, white-label delivery, or larger operations support? We can package admin workflows and rollout help.</p>
           <button className="text-sm font-bold text-blue-600 hover:underline">Contact Sales -&gt;</button>
         </div>

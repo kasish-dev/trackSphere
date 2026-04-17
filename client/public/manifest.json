@@ -1,7 +1,13 @@
 {
-  "short_name": "TrackSphere",
-  "name": "TrackSphere | AI Live Tracking",
+  "short_name": "Ksynq",
+  "name": "Ksynq | AI Live Tracking",
   "icons": [
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "icon-512.png",
       "sizes": "512x512",

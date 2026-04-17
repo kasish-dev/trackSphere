@@ -1,5 +1,5 @@
 /**
- * TrackSphere Notification Service
+ * Ksynq Notification Service
  * Handles live SMS via Twilio and free fallback share links for SOS alerts.
  */
 
@@ -41,7 +41,7 @@ const buildPublicSosUrl = ({ user, location, timestamp }) => {
 
 const buildEmergencyMessage = ({ user, location, type, publicSosUrl }) => {
   const modeLabel = type === 'TEST_SOS' ? '[TEST] ' : '';
-  return `${modeLabel}TrackSphere Alert: ${user.name} triggered an SOS. View location: https://www.google.com/maps?q=${location.lat},${location.lng} Track live status: ${publicSosUrl}`;
+  return `${modeLabel}Ksynq Alert: ${user.name} triggered an SOS. View location: https://www.google.com/maps?q=${location.lat},${location.lng} Track live status: ${publicSosUrl}`;
 };
 
 const buildMailtoLink = ({ to, subject, body }) => {
@@ -85,7 +85,7 @@ const buildFallbackLinks = ({ user, location, type, contacts, timestamp }) => {
         email: contact.email,
         url: buildMailtoLink({
           to: contact.email,
-          subject: `${type === 'TEST_SOS' ? '[TEST] ' : ''}TrackSphere SOS Alert`,
+          subject: `${type === 'TEST_SOS' ? '[TEST] ' : ''}Ksynq SOS Alert`,
           body: shareText,
         }),
       })),
@@ -274,7 +274,7 @@ exports.sendEmergencyAlert = async ({ type, user, contacts, location }) => {
         mode: 'mailto',
         mailtoUrl: buildMailtoLink({
           to: contact.email,
-          subject: `${type === 'TEST_SOS' ? '[TEST] ' : ''}TrackSphere SOS Alert`,
+          subject: `${type === 'TEST_SOS' ? '[TEST] ' : ''}Ksynq SOS Alert`,
           body: smsBody,
         }),
       });

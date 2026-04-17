@@ -8,7 +8,7 @@ export const buildPublicSosUrl = ({ lat, lng, userId, origin = window.location.o
 
 export const buildSosShareText = ({ userName, lat, lng, shareUrl, isTest = false }) => {
   const prefix = isTest ? '[TEST] ' : '';
-  return `${prefix}TrackSphere Alert: ${userName} triggered an SOS. View location: https://www.google.com/maps?q=${lat},${lng} Track live status: ${shareUrl}`;
+  return `${prefix}Ksynq Alert: ${userName} triggered an SOS. View location: https://www.google.com/maps?q=${lat},${lng} Track live status: ${shareUrl}`;
 };
 
 export const buildWhatsAppShareUrl = ({ text, phone = '' }) => {

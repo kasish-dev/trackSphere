@@ -12,7 +12,7 @@ const SUBSCRIPTION_PLANS = {
     tier: 'PRO',
     amount: 499,
     currency: 'INR',
-    name: 'TrackSphere PRO',
+    name: 'Ksynq PRO',
     description: 'Advanced safety for teams',
   },
   business: {
@@ -20,7 +20,7 @@ const SUBSCRIPTION_PLANS = {
     tier: 'BUSINESS',
     amount: 999,
     currency: 'INR',
-    name: 'TrackSphere Business',
+    name: 'Ksynq Business',
     description: 'Fleet and enterprise tracking',
   },
 };

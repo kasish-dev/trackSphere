@@ -80,7 +80,7 @@ export const startPlanCheckout = async ({ plan, authUser, onVerified }) => {
       key: data.key,
       amount: data.order.amount,
       currency: data.order.currency,
-      name: 'TrackSphere',
+      name: 'Ksynq',
       description: `${plan.name} subscription`,
       order_id: data.order.id,
       prefill: {
@@ -151,7 +151,7 @@ export const openInvoicePrintView = async ({ authUser, invoiceId }) => {
       </head>
       <body>
         <h2>Preparing your invoice...</h2>
-        <p>Please wait while TrackSphere loads the printable invoice.</p>
+        <p>Please wait while Ksynq loads the printable invoice.</p>
       </body>
     </html>
   `);

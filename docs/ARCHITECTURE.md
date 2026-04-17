@@ -1,7 +1,7 @@
 # Architecture
 
 ## High-Level Design
-TrackSphere is a two-part application:
+Ksynq is a two-part application:
 
 - A React SPA in `client/` for authentication, maps, groups, chat, settings, analytics, and admin views.
 - An Express + Socket.IO backend in `server/` that handles authentication, data persistence, real-time group communication, safety logic, and payment endpoints.

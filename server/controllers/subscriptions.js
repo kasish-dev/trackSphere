@@ -52,7 +52,7 @@ exports.createCheckoutSession = async (req, res) => {
           price_data: {
             currency: 'inr',
             product_data: {
-              name: `TrackSphere ${tierName}`,
+              name: `Ksynq ${tierName}`,
               description: planId === 'business' ? 'Up to 15 members and full analytics.' : 'Up to 5 members and advanced safety.',
             },
             unit_amount: amount * 100, 

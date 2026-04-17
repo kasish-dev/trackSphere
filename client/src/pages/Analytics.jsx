@@ -62,7 +62,7 @@ const Analytics = () => {
         </head>
         <body>
           <h2>Preparing your report...</h2>
-          <p>Please wait while TrackSphere generates the printable view.</p>
+          <p>Please wait while Ksynq generates the printable view.</p>
         </body>
       </html>
     `);

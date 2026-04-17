@@ -90,7 +90,7 @@ const Settings = () => {
       userId: user?.user?.id || 'test-user',
     });
     const shareText = buildSosShareText({
-      userName: user?.user?.name || 'TrackSphere user',
+      userName: user?.user?.name || 'Ksynq user',
       lat: location.lat,
       lng: location.lng,
       shareUrl,
@@ -107,7 +107,7 @@ const Settings = () => {
         .map((contact) => ({
           contact: contact.name,
           email: contact.email,
-          url: `mailto:${encodeURIComponent(contact.email)}?subject=${encodeURIComponent('[TEST] TrackSphere SOS Alert')}&body=${encodeURIComponent(shareText)}`,
+          url: `mailto:${encodeURIComponent(contact.email)}?subject=${encodeURIComponent('[TEST] Ksynq SOS Alert')}&body=${encodeURIComponent(shareText)}`,
         })),
     };
   };
@@ -198,7 +198,7 @@ const Settings = () => {
 
           <div className="bg-primary-600 p-6 rounded-2xl text-white shadow-lg shadow-primary-600/20 relative overflow-hidden">
             <Shield className="absolute -right-4 -bottom-4 opacity-10 w-32 h-32" />
-            <h3 className="font-bold mb-2">TrackSphere Premium</h3>
+            <h3 className="font-bold mb-2">Ksynq Premium</h3>
             <p className="text-sm text-primary-100 mb-4">Unlock advanced history analytics and geofencing alerts.</p>
             <button className="w-full py-2 bg-white text-primary-600 rounded-lg text-sm font-bold hover:bg-primary-50 transition">
               Upgrade Now
@@ -307,7 +307,7 @@ const Settings = () => {
               <p className="text-xs text-gray-500 mb-4">These people will be notified instantly when you trigger an SOS alert.</p>
 
               <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                SMS becomes automatic only when a provider like Twilio is configured. WhatsApp can also send directly when WhatsApp Cloud API credentials are configured on the server. Until then, TrackSphere uses share links for WhatsApp, email, Telegram, and the public SOS page.
+                SMS becomes automatic only when a provider like Twilio is configured. WhatsApp can also send directly when WhatsApp Cloud API credentials are configured on the server. Until then, Ksynq uses share links for WhatsApp, email, Telegram, and the public SOS page.
               </div>
               
               <div className="space-y-4">

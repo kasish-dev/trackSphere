@@ -56,7 +56,7 @@ const Home = () => {
             <div className="bg-primary-600 p-2 rounded-xl">
               <Navigation className="text-white" size={24} />
             </div>
-            <span className="text-2xl font-black tracking-tighter">TrackSphere</span>
+            <span className="text-2xl font-black tracking-tighter">Ksynq</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-500 dark:text-gray-400">
             <a href="#features" className="hover:text-primary-600 transition">Features</a>
@@ -83,7 +83,7 @@ const Home = () => {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-indigo-600">Safety For Real Operations.</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 mt-8 max-w-4xl mx-auto font-medium">
-              TrackSphere helps delivery businesses, sales teams, security agencies, fleet operators, and families manage live tracking, SOS alerts, work hours, and billing from one SaaS platform.
+              Ksynq helps delivery businesses, sales teams, security agencies, fleet operators, and families manage live tracking, SOS alerts, work hours, and billing from one SaaS platform.
             </p>
             <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-4">
               <Link to="/register" className="w-full md:w-auto bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-10 py-5 rounded-2xl font-black text-lg shadow-2xl hover:scale-105 transition flex items-center justify-center gap-2 group">
@@ -263,7 +263,7 @@ const Home = () => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Navigation className="text-primary-600" size={24} />
-              <span className="text-2xl font-black tracking-tighter">TrackSphere</span>
+              <span className="text-2xl font-black tracking-tighter">Ksynq</span>
             </div>
             <p className="text-gray-500 text-sm max-w-xs">Business-ready live tracking, billing, attendance, and SOS workflows in one SaaS product.</p>
           </div>
@@ -271,7 +271,7 @@ const Home = () => {
             <a href="#pricing" className="hover:text-primary-600 transition">Pricing</a>
             <Link to="/login" className="hover:text-primary-600 transition">Login</Link>
           </div>
-          <p className="text-xs text-gray-400 font-medium italic">© 2026 TrackSphere SaaS. All rights reserved.</p>
+          <p className="text-xs text-gray-400 font-medium italic">© 2026 Ksynq SaaS. All rights reserved.</p>
         </div>
       </footer>
     </div>

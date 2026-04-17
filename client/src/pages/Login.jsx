@@ -68,7 +68,7 @@ const Login = () => {
               <div className="bg-primary-600 p-2 rounded-lg">
                 <LogIn className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">TrackSphere</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Ksynq</h1>
             </div>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
               Sign in to your account
@@ -164,7 +164,7 @@ const Login = () => {
         <div className="absolute bottom-12 left-12 right-12 z-10">
           <h3 className="text-4xl font-bold text-white mb-4 leading-tight">Real-time Intelligence for Your Fleet.</h3>
           <p className="text-xl text-gray-200 max-w-lg leading-relaxed">
-            Track family members, delivery drivers, and school buses in real-time with TrackSphere's advanced geofencing and analytics.
+            Track family members, delivery drivers, and school buses in real-time with Ksynq's advanced geofencing and analytics.
           </p>
         </div>
       </div>

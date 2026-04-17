@@ -64,7 +64,7 @@ const AdminLogin = () => {
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.25em] text-red-300">Secure Access</p>
-                  <h1 className="text-3xl font-black tracking-tight">TrackSphere Admin</h1>
+                  <h1 className="text-3xl font-black tracking-tight">Ksynq Admin</h1>
                 </div>
               </div>
               <p className="mt-4 text-sm text-slate-400">

@@ -36,7 +36,7 @@ const Success = () => {
 
         <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Payment Successful!</h1>
         <p className="text-lg text-gray-500 dark:text-gray-400 mb-8">
-          Welcome to <span className="font-bold text-primary-600 dark:text-primary-400">TrackSphere {currentTier}</span>.
+          Welcome to <span className="font-bold text-primary-600 dark:text-primary-400">Ksynq {currentTier}</span>.
         </p>
 
         <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-6 text-left mb-8 space-y-4">

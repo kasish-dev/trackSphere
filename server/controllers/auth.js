@@ -602,11 +602,11 @@ exports.inviteWorkspaceEmployeeByEmail = async (req, res) => {
     const origin = req.headers.origin || `http://${req.get('host')}`;
     const signupUrl = `${origin}/register`;
 
-    const message = `You have been invited to join ${workspace.name} on TrackSphere as an employee.\n\nUse this company invite code during signup: ${workspace.inviteCode}\n\nSignup page: ${signupUrl}`;
+    const message = `You have been invited to join ${workspace.name} on Ksynq as an employee.\n\nUse this company invite code during signup: ${workspace.inviteCode}\n\nSignup page: ${signupUrl}`;
 
     await sendEmail({
       email,
-      subject: `Join ${workspace.name} on TrackSphere`,
+      subject: `Join ${workspace.name} on Ksynq`,
       message,
     });
 

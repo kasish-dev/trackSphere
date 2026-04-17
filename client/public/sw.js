@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tracksphere-v1';
+const CACHE_NAME = 'ksynq-v1';
 const ASSETS = [
   '/',
   '/index.html',

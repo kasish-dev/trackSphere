@@ -19,7 +19,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       setNotice('');
 
       const result = await startPlanCheckout({
-        plan: { id: 'pro', name: 'TrackSphere PRO' },
+        plan: { id: 'pro', name: 'Ksynq PRO' },
         authUser: user,
         onVerified: (verificationData) => {
           const updatedUser = verificationData?.user;
@@ -42,10 +42,10 @@ const UpgradeModal = ({ isOpen, onClose }) => {
 
       alert(
         isMockMode
-          ? 'TrackSphere PRO activated in demo mode.'
+          ? 'Ksynq PRO activated in demo mode.'
           : isTestMode
-            ? 'TrackSphere PRO activated in Razorpay test mode.'
-          : 'TrackSphere PRO activated successfully.'
+            ? 'Ksynq PRO activated in Razorpay test mode.'
+          : 'Ksynq PRO activated successfully.'
       );
     } catch (err) {
       console.error('Checkout error:', err);
@@ -91,7 +91,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
                 <Zap size={32} className="text-yellow-300" />
               </div>
             </div>
-            <h2 className="text-3xl font-black text-center mb-2 tracking-tight">TrackSphere PRO</h2>
+            <h2 className="text-3xl font-black text-center mb-2 tracking-tight">Ksynq PRO</h2>
             <p className="text-center text-primary-50 font-medium">Unlock the ultimate safety toolkit.</p>
           </div>
 

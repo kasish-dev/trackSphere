@@ -52,7 +52,7 @@ const PublicSOS = () => {
                         <Clock size={12} />
                         {new Date(data.timestamp).toLocaleTimeString()}
                     </div>
-                    <p className="text-[10px] opacity-70">Shared via TrackSphere</p>
+                    <p className="text-[10px] opacity-70">Shared via Ksynq</p>
                 </div>
             </div>
 

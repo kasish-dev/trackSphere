@@ -342,11 +342,11 @@ function deg2rad(deg) {
 
 // Health Check Route
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'TrackSphere Server is running' });
+  res.status(200).json({ status: 'OK', message: 'Ksynq Server is running' });
 });
 
 app.get('/', (req, res) => {
-  res.send('TrackSphere API is Live and Running!');
+  res.send('Ksynq API is Live and Running!');
 });
 
 const PORT = process.env.PORT || 5000;

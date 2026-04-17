@@ -61,8 +61,8 @@ const Groups = () => {
 
   const handleShare = async (group) => {
     const shareData = {
-      title: 'Join my TrackSphere group!',
-      text: `Join my group "${group.name}" on TrackSphere using this invite code: ${group.inviteCode}`,
+      title: 'Join my Ksynq group!',
+      text: `Join my group "${group.name}" on Ksynq using this invite code: ${group.inviteCode}`,
       url: `${window.location.origin}/groups?code=${group.inviteCode}`
     };
 
@@ -72,7 +72,7 @@ const Groups = () => {
       } else {
         // Fallback: Copy and open mailto
         handleCopy(group.inviteCode);
-        window.location.href = `mailto:?subject=Join my TrackSphere group&body=${encodeURIComponent(shareData.text)}`;
+        window.location.href = `mailto:?subject=Join my Ksynq group&body=${encodeURIComponent(shareData.text)}`;
       }
     } catch (err) {
       console.error('Error sharing:', err);

@@ -107,7 +107,7 @@ const Register = () => {
               <div className="bg-primary-600 p-2 rounded-lg">
                 <UserPlus className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">TrackSphere</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Ksynq</h1>
             </div>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
               Create your account
@@ -335,7 +335,7 @@ const Register = () => {
         <div className="absolute bottom-12 left-12 right-12 z-10">
           <h3 className="text-4xl font-bold text-white mb-4 leading-tight">Connect with Confidence.</h3>
           <p className="text-xl text-gray-200 max-w-lg leading-relaxed">
-            Join thousands of users who trust TrackSphere for their daily security and logistical needs.
+            Join thousands of users who trust Ksynq for their daily security and logistical needs.
           </p>
         </div>
       </div>

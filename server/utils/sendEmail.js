@@ -13,7 +13,7 @@ const sendEmail = async (options) => {
   });
 
   const message = {
-    from: `${process.env.FROM_NAME || 'TrackSphere'} <${process.env.FROM_EMAIL || process.env.SMTP_USER}>`,
+    from: `${process.env.FROM_NAME || 'Ksynq'} <${process.env.FROM_EMAIL || process.env.SMTP_USER}>`,
     to: options.email,
     subject: options.subject,
     text: options.message,

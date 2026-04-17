@@ -2,13 +2,15 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../redux/authSlice';
-import { Shield, BarChart3, LogOut, ArrowLeft } from 'lucide-react';
+import { BarChart3, LogOut, ArrowLeft, Shield } from 'lucide-react';
 
-const AdminLayout = ({ basePath = '/admin', title = 'Admin Panel', subtitle = 'Dedicated admin workspace for platform oversight and reporting.', showAnalytics = true }) => {
+
+const AdminLayout = ({ basePath = '/admin', title = 'Ksynq Admin Panel', subtitle = 'Dedicated admin workspace for platform oversight and reporting.', showAnalytics = true }) => {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const isSuperadmin = user?.user?.role === 'superadmin';
 
   const navItems = [
     { name: 'Overview', path: basePath, icon: Shield },
@@ -27,12 +29,12 @@ const AdminLayout = ({ basePath = '/admin', title = 'Admin Panel', subtitle = 'D
         <aside className="w-72 border-r border-gray-200 bg-white px-6 py-8 shadow-sm flex flex-col z-10">
           <div className="mb-10">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
-                <Shield size={20} className="fill-white/20" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-transparent shadow-sm">
+                <img src="/favicon.svg" alt="Ksynq logo" className="h-5 w-5 object-contain" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary-600">Admin</p>
-                <h1 className="text-lg font-bold tracking-tight text-gray-900">TrackSphere</h1>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary-600">{isSuperadmin ? 'Superadmin' : 'Admin'}</p>
+                <h1 className="text-lg font-bold tracking-tight text-gray-900">Ksynq</h1>
               </div>
             </div>
             <p className="mt-4 text-xs text-gray-500 leading-relaxed font-medium">
