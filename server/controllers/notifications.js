@@ -7,13 +7,33 @@ const notificationService = require('../services/notificationService');
 // @access  Private
 exports.getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user.id })
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 50));
+    const query = {};
+
+    if (req.query.sos === 'true') {
+      query.type = 'sos';
+      if (['admin', 'superadmin'].includes(req.user.role)) {
+        if (req.user.role === 'superadmin') {
+          query.type = 'sos';
+        } else {
+          const workspaceUsers = await User.find({ workspace: req.user.workspace?._id || req.user.workspace }).select('_id');
+          query.userId = { $in: workspaceUsers.map((user) => user._id) };
+        }
+      } else {
+        query.userId = req.user.id;
+      }
+    } else {
+      query.userId = req.user.id;
+    }
+
+    const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(limit);
     
     res.status(200).json({
       success: true,
       data: notifications,
+      notifications,
     });
   } catch (err) {
     res.status(500).json({

@@ -3,6 +3,7 @@ const LocationHistory = require('../models/LocationHistory');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const WorkSession = require('../models/WorkSession');
+const Notification = require('../models/Notification');
 
 const AUTO_CHECKOUT_MINUTES = 30;
 
@@ -315,6 +316,65 @@ exports.checkOutWorkSession = async (req, res) => {
     res.status(200).json({
       success: true,
       data: serializeWorkSession(session),
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Get live users for workspace or platform monitoring
+// @route   GET /api/location/live-users
+// @access  Private/Admin
+exports.getLiveUsers = async (req, res) => {
+  try {
+    if (!['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: 'Only admins can view live users' });
+    }
+
+    const activeWindowMinutes = Math.max(1, parseInt(req.query.activeWindowMinutes, 10) || 10);
+    const activeSince = new Date(Date.now() - activeWindowMinutes * 60 * 1000);
+    const scopeWorkspaceId = req.user.role === 'superadmin'
+      ? (req.query.workspaceId || null)
+      : (req.user.workspace?._id || req.user.workspace || null);
+
+    const userQuery = scopeWorkspaceId ? { workspace: scopeWorkspaceId } : {};
+    const workspaceUsers = await User.find(userQuery).select('_id name email workspace role');
+    const userIds = workspaceUsers.map((user) => user._id);
+
+    const locations = await Location.find({
+      user: { $in: userIds },
+      timestamp: { $gte: activeSince },
+    }).sort({ timestamp: -1 }).populate('user', 'name email workspace');
+
+    const users = locations.map((location) => ({
+      id: location.user?._id || location.user,
+      name: location.user?.name || 'Unknown user',
+      email: location.user?.email || '',
+      workspaceId: location.user?.workspace || null,
+      lat: location.lat,
+      lng: location.lng,
+      accuracy: location.accuracy,
+      batteryLevel: location.batteryLevel,
+      isCharging: location.isCharging,
+      lastSeenAt: location.timestamp,
+    }));
+
+    const userIdSet = new Set(users.map((entry) => String(entry.id)));
+    const recentSosAlerts = await Notification.find({
+      ...(userIds.length ? { userId: { $in: userIds } } : {}),
+      type: 'sos',
+    }).sort({ createdAt: -1 }).limit(5);
+
+    res.status(200).json({
+      success: true,
+      users,
+      summary: {
+        totalUsers: workspaceUsers.length,
+        activeUsers: users.length,
+        inactiveUsers: Math.max(0, workspaceUsers.length - userIdSet.size),
+        activeWindowMinutes,
+      },
+      recentSosAlerts,
     });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });

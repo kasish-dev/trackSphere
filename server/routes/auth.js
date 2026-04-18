@@ -30,6 +30,7 @@ router.patch('/preferences', protect, updatePreferences);
 router.patch('/profile', protect, updateProfile);
 router.get('/dashboard', protect, authorize('superadmin'), getAdminDashboard);
 router.get('/workspace-dashboard', protect, authorize('admin'), getWorkspaceDashboard);
+router.get('/workspace-live-overview', protect, authorize('admin'), require('../controllers/auth').getWorkspaceLiveOverview);
 router.post('/workspace/invite-code/regenerate', protect, authorize('admin'), regenerateWorkspaceInviteCode);
 router.post('/workspace/invite-email', protect, authorize('admin'), require('../controllers/auth').inviteWorkspaceEmployeeByEmail);
 router.post('/workspace/employees', protect, authorize('admin'), createWorkspaceEmployee);

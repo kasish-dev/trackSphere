@@ -31,6 +31,106 @@ const workspaceSchema = new mongoose.Schema({
       ref: 'User',
     },
   ],
+  companyProfile: {
+    legalName: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    industry: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    billingEmail: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+  },
+  attendanceSettings: {
+    autoAttendanceEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    expectedCheckInTime: {
+      type: String,
+      default: '09:00',
+    },
+    expectedCheckOutTime: {
+      type: String,
+      default: '18:00',
+    },
+    fullDayHours: {
+      type: Number,
+      default: 8,
+    },
+    halfDayHours: {
+      type: Number,
+      default: 4,
+    },
+    lateAfterMinutes: {
+      type: Number,
+      default: 0,
+    },
+    geofenceCategories: {
+      type: [String],
+      default: ['work', 'office', 'headquarters'],
+    },
+  },
+  reportSettings: {
+    enabled: {
+      type: Boolean,
+      default: true,
+    },
+    frequency: {
+      type: String,
+      enum: ['manual', 'daily'],
+      default: 'daily',
+    },
+    recipients: {
+      type: [String],
+      default: [],
+    },
+    deliveryChannels: {
+      type: [String],
+      default: ['email'],
+    },
+    includeAttendance: {
+      type: Boolean,
+      default: true,
+    },
+    includeRoutes: {
+      type: Boolean,
+      default: true,
+    },
+    includeIdleTime: {
+      type: Boolean,
+      default: true,
+    },
+    lastGeneratedAt: {
+      type: Date,
+      default: null,
+    },
+    lastSentAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  billing: {
+    seatPriceMonthly: {
+      type: Number,
+      default: 50,
+    },
+    currency: {
+      type: String,
+      default: 'INR',
+    },
+    paywallEnabled: {
+      type: Boolean,
+      default: true,
+    },
+  },
 }, {
   timestamps: true,
 });

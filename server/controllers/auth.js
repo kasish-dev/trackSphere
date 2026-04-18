@@ -9,6 +9,8 @@ const WorkSession = require('../models/WorkSession');
 const { applyTrialState, serializeUser, startFreeTrial } = require('../utils/subscription');
 const Workspace = require('../models/Workspace');
 const { ensureWorkspaceForAdminUser, findWorkspaceByInviteCode } = require('../utils/workspace');
+const Location = require('../models/Location');
+const attendanceService = require('../services/attendanceService');
 
 const sanitizeEmergencyContacts = (contacts = []) => {
   return contacts
@@ -453,6 +455,10 @@ exports.getWorkspaceDashboard = async (req, res) => {
           name: workspace.name,
           slug: workspace.slug,
           inviteCode: workspace.inviteCode,
+          billing: workspace.billing,
+          attendanceSettings: workspace.attendanceSettings,
+          reportSettings: workspace.reportSettings,
+          companyProfile: workspace.companyProfile,
         },
         stats: {
           totalUsers: users.length,
@@ -469,6 +475,7 @@ exports.getWorkspaceDashboard = async (req, res) => {
           totalRevenueCollected,
           successfulPayments: paidPayments.length,
           failedPayments: failedPayments.length,
+          estimatedSeatRevenue: employeeCount * (workspace.billing?.seatPriceMonthly || 50),
         },
         attendance: {
           todayDateKey: todayKey,
@@ -496,6 +503,69 @@ exports.getWorkspaceDashboard = async (req, res) => {
           })),
         },
         users: users.map(serializeUser),
+      },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Get live monitoring overview for workspace admin
+// @route   GET /api/auth/workspace-live-overview
+// @access  Private/Admin
+exports.getWorkspaceLiveOverview = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace?._id || req.user.workspace;
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, error: 'Workspace not found for this admin account' });
+    }
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ success: false, error: 'Workspace not found' });
+    }
+
+    const workspaceUsers = await User.find({ workspace: workspaceId }).select('_id name email role lastActiveAt trialStatus subscriptionTier');
+    const userIds = workspaceUsers.map((entry) => entry._id);
+    const activeSince = new Date(Date.now() - 10 * 60 * 1000);
+
+    const liveLocations = await Location.find({
+      user: { $in: userIds },
+      timestamp: { $gte: activeSince },
+    }).sort({ timestamp: -1 }).populate('user', 'name email');
+
+    const todayAttendance = await attendanceService.getWorkspaceAttendanceSummary(workspaceId, new Date());
+    const recentSosAlerts = await Notification.find({
+      userId: { $in: userIds },
+      type: 'sos',
+    }).sort({ createdAt: -1 }).limit(6);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workspace: {
+          id: workspace._id,
+          name: workspace.name,
+        },
+        summary: {
+          totalEmployees: workspaceUsers.length,
+          activeUsers: liveLocations.length,
+          inactiveUsers: Math.max(0, workspaceUsers.length - liveLocations.length),
+          sosAlerts: recentSosAlerts.length,
+          trialUsers: workspaceUsers.filter((entry) => entry.trialStatus === 'active').length,
+        },
+        attendance: todayAttendance,
+        liveUsers: liveLocations.map((location) => ({
+          id: location.user?._id || location.user,
+          name: location.user?.name || 'Unknown user',
+          email: location.user?.email || '',
+          lat: location.lat,
+          lng: location.lng,
+          batteryLevel: location.batteryLevel,
+          isCharging: location.isCharging,
+          lastSeenAt: location.timestamp,
+        })),
+        sosAlerts: recentSosAlerts,
       },
     });
   } catch (err) {

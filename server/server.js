@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const safetyService = require('./services/safetyService');
 const notificationService = require('./services/notificationService');
+const attendanceService = require('./services/attendanceService');
 
 // Connect to Database
 connectDB();
@@ -88,6 +89,8 @@ app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/payment', require('./routes/payment'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Socket.io initialization
 io.on('connection', (socket) => {
@@ -178,6 +181,27 @@ io.on('connection', (socket) => {
               type: eventType,
               timestamp: Date.now()
             });
+
+            // INTEGRATE ATTENDANCE SYSTEM: Auto check-in/check-out for office geofences
+            try {
+              if (eventType === 'enter') {
+                await attendanceService.handleGeofenceEntry(
+                  data.userId,
+                  fence._id,
+                  new Date(),
+                  { lat: data.lat, lng: data.lng }
+                );
+              } else if (eventType === 'exit') {
+                await attendanceService.handleGeofenceExit(
+                  data.userId,
+                  fence._id,
+                  new Date(),
+                  { lat: data.lat, lng: data.lng }
+                );
+              }
+            } catch (attendanceError) {
+              console.error('Attendance processing error:', attendanceError);
+            }
 
             // PERSISTENT NOTIFICATION: Save for all members in the group
             try {

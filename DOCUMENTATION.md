@@ -3,11 +3,11 @@
 ## Final Summary
 Start with these 5 highest-impact business features:
 
-- Admin Dashboard
-- Free Trial System
-- Reports (PDF)
-- WhatsApp SOS
-- Clear Pricing Page
+- Attendance system
+- Admin live dashboard
+- Company workspace system
+- Daily auto reports
+- Free trial + paywall
 
 ## Product Overview
 Ksynq is a full-stack real-time tracking platform for teams, families, field staff, and fleet-style group coordination. It combines live location sharing, group management, geofencing, chat, SOS alerts, notification workflows, and subscription-based feature gating in one web application.
@@ -67,11 +67,32 @@ The repository is split into:
 
 ## Business Model
 - Subscription-based SaaS platform
-- Pricing per user / per group / per vehicle
+- Pricing per user / per workspace
 - Free trial: 7 days
 - Monthly & yearly plans
 - One-time setup fee for businesses
 - White-label solution for companies
+
+## Business Positioning
+Ksynq is positioned as a Workforce Tracking & Safety SaaS Platform for:
+
+- Field employee monitoring
+- Delivery workforce tracking
+- Sales team productivity tracking
+- Safety-focused group tracking
+
+## Revenue Streams
+- Subscription (monthly/yearly)
+- Per-user pricing (B2B)
+- White-label licensing
+- Setup & customization fees
+- Premium analytics add-ons
+
+## Ideal Customers
+- Companies with 5–100 employees
+- Delivery & logistics businesses
+- Sales-driven organizations
+- Security agencies
 
 ## Target Customers
 - Delivery companies (Zomato-type small vendors)
