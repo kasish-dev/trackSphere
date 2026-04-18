@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
@@ -18,7 +18,12 @@ import {
   BriefcaseBusiness,
   Map,
   Loader2,
-  Download
+  Download,
+  Eye,
+  AlertTriangle,
+  CheckCircle,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -55,9 +60,76 @@ const Admin = () => {
     sessions: [],
   });
 
+  // Live monitoring state
+  const [liveUsers, setLiveUsers] = useState([]);
+  const [liveAttendance, setLiveAttendance] = useState({
+    present: 0,
+    late: 0,
+    absent: 0,
+    totalEmployees: 0,
+  });
+  const [sosAlerts, setSosAlerts] = useState([]);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const socketRef = useRef(null);
+
   useEffect(() => {
     fetchDashboard();
+    setupLiveMonitoring();
+    fetchLiveData();
+
+    // Set up periodic updates
+    const interval = setInterval(() => {
+      fetchLiveData();
+      setLastUpdate(new Date());
+    }, 30000); // Update every 30 seconds
+
+    return () => {
+      clearInterval(interval);
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
   }, []);
+
+  const setupLiveMonitoring = () => {
+    // This would connect to socket for real-time updates
+    // For now, we'll use polling
+    console.log('Setting up live monitoring...');
+  };
+
+  const fetchLiveData = async () => {
+    try {
+      const locationResponse = await axios.get(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/location/live-users`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+
+      if (locationResponse.data?.users) {
+        setLiveUsers(locationResponse.data.users);
+      }
+
+      if (locationResponse.data?.summary) {
+        setLiveAttendance((prev) => ({
+          ...prev,
+          totalEmployees: locationResponse.data.summary.totalUsers || 0,
+          absent: locationResponse.data.summary.inactiveUsers || 0,
+        }));
+      }
+
+      // Fetch recent SOS alerts
+      const sosResponse = await axios.get(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/notifications?sos=true&limit=5`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+
+      if (sosResponse.data?.notifications) {
+        setSosAlerts(sosResponse.data.notifications);
+      }
+
+    } catch (error) {
+      console.error('Error fetching live data:', error);
+    }
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -69,6 +141,11 @@ const Admin = () => {
       setUsers(data.data?.users || []);
       setStats(data.data?.stats || {});
       setAttendance(data.data?.attendance || {});
+      setLiveAttendance((prev) => ({
+        ...prev,
+        present: data.data?.attendance?.openSessions || 0,
+        late: prev.late || 0,
+      }));
     } catch (err) {
       console.error('Fetch admin dashboard error:', err);
     } finally {
@@ -199,6 +276,177 @@ const Admin = () => {
               <p className="text-2xl font-bold text-gray-900 tracking-tight mt-auto">{card.value ?? 0}</p>
             </motion.div>
           ))}
+        </div>
+      </div>
+
+      {/* Live Monitoring Dashboard */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 tracking-wide uppercase">Live Monitoring</h2>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            Last updated: {lastUpdate.toLocaleTimeString()}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Users</p>
+              <div className="w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-600">
+                <Eye size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{liveUsers.length}</p>
+            <p className="text-xs text-gray-500 mt-1">Currently online</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.3 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Present Today</p>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                <UserCheck size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{liveAttendance.present}</p>
+            <p className="text-xs text-gray-500 mt-1">Checked in</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Late Arrivals</p>
+              <div className="w-8 h-8 rounded-lg bg-yellow-50 border border-yellow-100 flex items-center justify-center text-yellow-600">
+                <Clock3 size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{liveAttendance.late}</p>
+            <p className="text-xs text-gray-500 mt-1">Arrived late</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.3 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">SOS Alerts</p>
+              <div className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
+                <AlertTriangle size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{sosAlerts.length}</p>
+            <p className="text-xs text-gray-500 mt-1">Active alerts</p>
+          </motion.div>
+        </div>
+
+        {/* Live Map and Activity Feed */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Live User Map */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <Map size={16} className="text-gray-400" />
+                Live User Locations
+              </h3>
+            </div>
+            <div className="p-5">
+              {liveUsers.length > 0 ? (
+                <div className="space-y-3">
+                  {liveUsers.slice(0, 8).map((user, index) => (
+                    <motion.div
+                      key={user.id || index}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                          <span className="text-xs font-semibold text-primary-700">
+                            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{user.name || 'Unknown User'}</p>
+                          <p className="text-xs text-gray-500">
+                            {user.lat?.toFixed(4)}, {user.lng?.toFixed(4)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-xs text-gray-500">Live</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {liveUsers.length > 8 && (
+                    <p className="text-xs text-gray-500 text-center py-2">
+                      +{liveUsers.length - 8} more users active
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Map size={48} className="text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">No active users currently</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent SOS Alerts */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <AlertTriangle size={16} className="text-red-400" />
+                Recent SOS Alerts
+              </h3>
+            </div>
+            <div className="p-5">
+              {sosAlerts.length > 0 ? (
+                <div className="space-y-3">
+                  {sosAlerts.map((alert, index) => (
+                    <motion.div
+                      key={alert._id || index}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-start gap-3 p-3 bg-red-50 border border-red-100 rounded-lg"
+                    >
+                      <AlertTriangle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-900">{alert.message}</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          {new Date(alert.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle size={48} className="text-green-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">No active SOS alerts</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

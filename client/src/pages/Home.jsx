@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import {
   MapPin,
   ShieldAlert,
-  Zap,
-  Users,
   ArrowRight,
   Navigation,
   CheckCircle2,
-  MessageSquare,
   Receipt,
   BriefcaseBusiness,
+  Eye,
+  Building2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -39,6 +38,12 @@ const Home = () => {
       desc: 'Auto check-in/check-out, work hours, movement tracking, and attendance-ready summaries.',
       icon: <BriefcaseBusiness className="text-amber-500" />,
       box: 'bg-amber-50 dark:bg-amber-900/20'
+    },
+    {
+      title: 'Live Admin Monitoring',
+      desc: 'Company-wide live visibility for active staff, attendance pulse, and SOS response on one screen.',
+      icon: <Eye className="text-cyan-500" />,
+      box: 'bg-cyan-50 dark:bg-cyan-900/20'
     },
     {
       title: 'Billing + Reports',
@@ -131,11 +136,46 @@ const Home = () => {
           <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 p-8 shadow-sm">
             <h3 className="text-xl font-black mb-4">What you can do first</h3>
             <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-              <p>Create a secure account for yourself or your business.</p>
-              <p>Add emergency contacts and test SOS with your real location.</p>
-              <p>Invite members, create groups, and start live tracking.</p>
-              <p>Enable geofences and attendance-ready movement summaries.</p>
+              <p>Create a company account and invite employees into one shared workspace.</p>
+              <p>Turn office geofences into attendance, work hours, and late-entry visibility.</p>
+              <p>Open the live admin dashboard to monitor active staff and SOS activity.</p>
+              <p>Send daily reports to business owners after the 7-day free trial.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 pb-20">
+        <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
+          <div className="rounded-[2.5rem] border border-gray-100 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-primary-600">Business Positioning</p>
+            <h2 className="mt-4 text-3xl font-black">Workforce Tracking & Safety SaaS for revenue-focused teams.</h2>
+            <div className="mt-6 grid gap-3 text-sm font-medium text-gray-600 dark:text-gray-300 md:grid-cols-2">
+              <p className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-gray-900/50">Field employee monitoring</p>
+              <p className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-gray-900/50">Delivery workforce tracking</p>
+              <p className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-gray-900/50">Sales team productivity tracking</p>
+              <p className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-gray-900/50">Safety-focused group tracking</p>
+            </div>
+          </div>
+
+          <div className="rounded-[2.5rem] border border-emerald-200 bg-emerald-50 p-8 shadow-sm dark:border-emerald-800 dark:bg-emerald-900/20">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-white/70 p-3 text-emerald-700 dark:bg-emerald-950/40">
+                <Building2 size={26} />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">Demo Mode</p>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white">Sell it instantly</h3>
+              </div>
+            </div>
+            <div className="mt-6 rounded-2xl bg-white/80 px-5 py-5 dark:bg-emerald-950/30">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Demo login</p>
+              <p className="mt-3 text-sm text-gray-700 dark:text-gray-200">Email: <span className="font-black">demo@ksynq.com</span></p>
+              <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">Password: <span className="font-black">123456</span></p>
+            </div>
+            <p className="mt-5 text-sm text-emerald-900 dark:text-emerald-100">
+              Includes seeded workspace data, attendance records, and business-friendly live monitoring for demos.
+            </p>
           </div>
         </div>
       </section>
@@ -147,7 +187,7 @@ const Home = () => {
             <p className="text-gray-500 font-medium">Business-ready features for Indian pricing, team operations, and real safety workflows.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
             {features.map((f, i) => (
               <motion.div
                 key={i}
@@ -183,6 +223,7 @@ const Home = () => {
                 <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> 1 group</li>
                 <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Limited tracking</li>
                 <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> 1-day history</li>
+                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> 7-day trial before paywall</li>
               </ul>
               <Link to="/register" className="w-full py-4 bg-gray-50 dark:bg-gray-700 rounded-2xl font-black text-center text-sm shadow-sm hover:bg-gray-100 transition">
                 Start Free
@@ -199,6 +240,7 @@ const Home = () => {
                 <li className="flex items-center gap-3 text-sm font-bold"><CheckCircle2 size={18} className="text-white" /> 30-day history</li>
                 <li className="flex items-center gap-3 text-sm font-bold"><CheckCircle2 size={18} className="text-white" /> Geofencing + SOS</li>
                 <li className="flex items-center gap-3 text-sm font-bold"><CheckCircle2 size={18} className="text-white" /> Employee tracking</li>
+                <li className="flex items-center gap-3 text-sm font-bold"><CheckCircle2 size={18} className="text-white" /> Live route replay</li>
               </ul>
               <Link to="/register" className="w-full py-4 bg-white text-primary-600 rounded-2xl font-black text-center text-sm shadow-xl hover:bg-primary-50 transition border border-white">
                 Start Trial
@@ -208,12 +250,12 @@ const Home = () => {
             <div className="bg-white dark:bg-gray-800 p-10 rounded-[3rem] border-2 border-gray-50 dark:border-gray-700 flex flex-col">
               <h3 className="text-2xl font-bold mb-2">BUSINESS</h3>
               <p className="text-gray-400 text-sm mb-6 uppercase tracking-widest font-bold">Operations Plan</p>
-              <div className="text-5xl font-black mb-10">Rs 999 <span className="text-lg text-gray-400">/mo</span></div>
+              <div className="text-5xl font-black mb-10">Rs 50 <span className="text-lg text-gray-400">/user/mo</span></div>
               <ul className="space-y-4 mb-10 flex-grow">
-                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Up to 15 members</li>
-                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Admin dashboard</li>
-                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Reports & analytics</li>
-                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Billing & invoices</li>
+                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Company workspace with employees</li>
+                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Live admin monitoring dashboard</li>
+                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Attendance + daily reports</li>
+                <li className="flex items-center gap-3 text-sm font-bold text-gray-600 dark:text-gray-400"><CheckCircle2 size={18} className="text-primary-500" /> Hard paywall + billing controls</li>
               </ul>
               <Link to="/register" className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-black text-center text-sm shadow-xl hover:opacity-90 transition">
                 Upgrade Business
